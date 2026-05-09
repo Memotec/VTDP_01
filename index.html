@@ -24,52 +24,61 @@
     body { font-family: 'Inter', sans-serif; transition: background-color 0.3s ease, color 0.3s ease; }
     .dark body { background-color: #0f172a; color: #f1f5f9; }
     
-    /* Chuyển các văn bản chính sang tông xanh đậm chuyên nghiệp */
-    .text-primary-dark { color: #1e1b4b; } /* indigo-950 */
-    .dark .text-primary-dark { color: #f8fafc; }
-        .toast-exit { animation: fadeOut 0.3s ease-out forwards; }
+    .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 
-        .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .table-container { -webkit-overflow-scrolling: touch; overflow-x: auto; }
+    .inventory-row:hover { background-color: #f8fafc !important; }
+    .dark .inventory-row:hover { background-color: #1e293b !important; }
+    
+    #printQRArea, #printLabelArea { display: none; }
 
-        .table-container { -webkit-overflow-scrolling: touch; overflow-x: auto; }
+    @media print {
+        body * { visibility: hidden; }
+        #mainApp, #loginOverlay, #toastContainer, #advAuditModal { display: none !important; }
         
-        .inventory-row:hover { background-color: #f1f5f9 !important; }
-        .dark .inventory-row:hover { background-color: #1e293b !important; }
-        .inventory-row { transition: all 0.2s ease; border-bottom: 1px solid #f1f5f9; }
-        .dark .inventory-row { border-bottom: 1px solid #1e293b; }
-        
-        .badge-warehouse { 
-            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
-            color: #3730a3;
-            padding: 4px 10px;
-            border-radius: 8px;
-            font-size: 11px;
-            font-weight: 800;
-            letter-spacing: 0.025em;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
+        @page { size: A4; margin: 0; }
 
-        #printQRArea { display: none; }
-        @media print {
-            body * { visibility: hidden; }
-            #mainApp, #loginOverlay, #toastContainer, #advAuditModal { display: none !important; }
-            #printQRArea, #printQRArea * { visibility: visible; }
-            #printQRArea {
-                position: absolute; left: 0; top: 0; width: 210mm;
-                display: grid !important; grid-template-columns: repeat(6, 1fr);
-                gap: 5mm; padding: 10mm; background: white;
-            }
-            .qr-item { width: 30mm; height: 40mm; display: flex; flex-direction: column; align-items: center; page-break-inside: avoid; }
-            .qr-item canvas { width: 30mm !important; height: 30mm !important; }
-            .qr-text { font-size: 8pt; font-weight: bold; margin-top: 2mm; text-align: center; text-transform: uppercase; color: black; }
+        #printQRArea:not(:empty) {
+            visibility: visible;
+            display: grid !important;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 5mm;
+            padding: 10mm;
+            position: absolute; left: 0; top: 0; width: 100%;
+            background: white;
         }
+        #printQRArea * { visibility: visible; }
+        .qr-item { width: 30mm; height: 40mm; display: flex; flex-direction: column; align-items: center; page-break-inside: avoid; }
+        .qr-text { font-size: 7pt; font-weight: bold; margin-top: 1mm; text-align: center; color: black; }
 
-        @media (max-width: 640px) {
-            .btn-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-            .btn-grid button { width: 100% !important; margin: 0 !important; font-size: 9px !important; padding: 10px 4px !important; }
+        #printLabelArea:not(:empty) {
+            visibility: visible;
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 3mm;
+            padding: 10mm;
+            position: absolute; left: 0; top: 0; width: 100%;
+            background: white;
         }
+        #printLabelArea * { visibility: visible; }
+        .label-item {
+            width: 63mm; height: 35mm; border: 1.5px solid #000;
+            padding: 3mm; display: flex; flex-direction: column;
+            justify-content: center; page-break-inside: avoid;
+            box-sizing: border-box; font-family: 'Times New Roman', serif;
+            color: black; background: white;
+        }
+        .label-name { font-size: 10pt; font-weight: 900; border-bottom: 1px solid #000; padding-bottom: 1mm; margin-bottom: 1.5mm; text-transform: uppercase; line-height: 1.2; }
+        .label-row { font-size: 9pt; margin-bottom: 0.5mm; display: flex; }
+        .label-row b { width: 18mm; flex-shrink: 0; }
+    }
+
+    @media (max-width: 640px) {
+        .btn-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .btn-grid button { width: 100% !important; margin: 0 !important; font-size: 9px !important; }
+    }
     </style>
 </head>
 <body class="text-indigo-950 dark:text-slate-200 antialiased min-h-screen flex flex-col relative bg-slate-50 dark:bg-slate-950">
@@ -83,207 +92,148 @@
             <p class="text-xs font-bold text-indigo-600/70 dark:text-slate-400 mt-2 uppercase tracking-widest">Đội Thông Tin - Bảo Đảm Kỹ Thuật</p>
         </div>
         <div class="space-y-4">
-            <div>
-                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5 uppercase ml-1">Tài khoản</label>
-                <input type="text" id="user" class="w-full px-4 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 focus:border-indigo-500 outline-none transition-all bg-slate-50 dark:bg-slate-800 text-base dark:text-white" placeholder="admin / guest">
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5 uppercase ml-1">Mật khẩu</label>
-                <input type="password" id="pass" class="w-full px-4 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 focus:border-indigo-500 outline-none transition-all bg-slate-50 dark:bg-slate-800 text-base dark:text-white" placeholder="••••••••">
-            </div>
-            <button onclick="checkLogin()" class="w-full mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-2xl shadow-xl transition-all active:scale-[0.98] text-base uppercase tracking-wide">
-                Đăng Nhập Hệ Thống
-            </button>
+            <input type="text" id="user" class="w-full px-4 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 focus:border-indigo-500 outline-none transition-all bg-slate-50 dark:bg-slate-800 dark:text-white" placeholder="Tài khoản (admin/guest)">
+            <input type="password" id="pass" class="w-full px-4 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 focus:border-indigo-500 outline-none transition-all bg-slate-50 dark:bg-slate-800 dark:text-white" placeholder="Mật khẩu">
+            <button onclick="checkLogin()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-2xl shadow-xl transition-all uppercase tracking-wide">Đăng Nhập</button>
         </div>
     </div>
 </div>
 
 <div id="mainApp" class="hidden flex-1 flex flex-col w-full max-w-7xl mx-auto p-3 sm:p-6 lg:p-8">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <div class="flex justify-between w-full sm:w-auto items-center">
-            <div>
-                <h1 class="text-2xl sm:text-3xl font-black text-indigo-950 dark:text-white tracking-tight">Vật Tư CNS/ATM</h1>
-                <p class="text-sm font-medium text-indigo-600/60 dark:text-slate-400">Hệ thống quản lý nội bộ Đội Thông Tin</p>
-            </div>
-            <button onclick="toggleDarkMode()" class="sm:hidden p-3 bg-slate-200 dark:bg-slate-800 rounded-2xl text-lg">
-                <span id="darkIconMob">🌙</span>
-            </button>
+        <div>
+            <h1 class="text-2xl sm:text-3xl font-black text-indigo-950 dark:text-white tracking-tight">Vật Tư CNS/ATM</h1>
+            <p class="text-sm font-medium text-indigo-600/60 dark:text-slate-400">Quản lý kho nội bộ Đội Thông Tin</p>
         </div>
         <div class="flex items-center gap-3">
-            <button onclick="toggleDarkMode()" class="hidden sm:flex items-center gap-2 px-4 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-2xl transition-all font-bold text-xs uppercase tracking-widest">
-                <span id="darkIcon">🌙</span> <span id="darkText">Chế độ tối</span>
-            </button>
-            <div id="syncStatusWrapper" class="hidden items-center px-4 py-2 rounded-2xl border dark:border-slate-700 shadow-sm text-[10px] font-black transition-all uppercase tracking-widest">
-                <span id="syncIcon" class="mr-2">⚪</span>
-                <span id="syncText">Sẵn sàng</span>
+            <button onclick="toggleDarkMode()" class="p-3 bg-slate-200 dark:bg-slate-800 rounded-2xl">🌙</button>
+            <div id="syncStatusWrapper" class="hidden items-center px-4 py-2 rounded-2xl border dark:border-slate-700 text-[10px] font-black uppercase tracking-widest">
+                <span id="syncIcon" class="mr-2">⚪</span> <span id="syncText">Sẵn sàng</span>
             </div>
         </div>
     </div>
 
-    <div id="adminArea" class="hidden bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 sm:p-7 mb-6">
-        <h2 class="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase mb-5 flex items-center gap-2 tracking-widest">
-            <span class="w-2 h-2 rounded-full bg-indigo-600"></span> CẬP NHẬT THIẾT BỊ
-        </h2>
+    <div id="adminArea" class="hidden bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 mb-6">
         <input type="hidden" id="editIndex" value="-1">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div class="sm:col-span-2">
-                <label class="block text-[10px] font-black text-slate-500 dark:text-slate-400 mb-1.5 uppercase ml-1">Tên thiết bị / Model *</label>
-                <input type="text" id="inName" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-500 bg-slate-50 dark:bg-slate-800 dark:text-white outline-none">
+                <label class="block text-[10px] font-black text-slate-500 mb-1.5 uppercase ml-1">Tên thiết bị *</label>
+                <input type="text" id="inName" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 dark:text-white outline-none">
             </div>
             <div>
-                <label class="block text-[10px] font-black text-slate-500 dark:text-slate-400 mb-1.5 uppercase ml-1">Part Number (P/N)</label>
-                <input type="text" id="inPN" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-500 bg-slate-50 dark:bg-slate-800 dark:text-white outline-none">
+                <label class="block text-[10px] font-black text-slate-500 mb-1.5 uppercase ml-1">P/N</label>
+                <input type="text" id="inPN" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 dark:text-white outline-none">
             </div>
             <div>
-                <label class="block text-[10px] font-black text-slate-500 dark:text-slate-400 mb-1.5 uppercase ml-1">Serial Number (S/N) *</label>
-                <input type="text" id="inSN" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-500 bg-slate-50 dark:bg-slate-800 dark:text-white outline-none">
+                <label class="block text-[10px] font-black text-slate-500 mb-1.5 uppercase ml-1">S/N *</label>
+                <input type="text" id="inSN" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 dark:text-white outline-none">
             </div>
             <div>
-                <label class="block text-[10px] font-black text-slate-500 dark:text-slate-400 mb-1.5 uppercase ml-1">Mã Kho (QR)</label>
-                <input type="text" id="inWarehouse" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-500 bg-slate-50 dark:bg-slate-800 dark:text-white outline-none" placeholder="Vd: KH-001">
+                <label class="block text-[10px] font-black text-slate-500 mb-1.5 uppercase ml-1">Mã Kho (QR)</label>
+                <input type="text" id="inWarehouse" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 dark:text-white outline-none">
             </div>
             <div>
-                <label class="block text-[10px] font-black text-slate-500 dark:text-slate-400 mb-1.5 uppercase ml-1">Vị trí lưu trữ</label>
-                <input type="text" id="inLoc" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-500 bg-slate-50 dark:bg-slate-800 dark:text-white outline-none">
+                <label class="block text-[10px] font-black text-slate-500 mb-1.5 uppercase ml-1">Vị trí</label>
+                <input type="text" id="inLoc" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 dark:text-white outline-none">
             </div>
             <div>
-                <label class="block text-[10px] font-black text-slate-500 dark:text-slate-400 mb-1.5 uppercase ml-1">Số lượng</label>
-                <input type="number" id="inQty" value="1" min="1" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-500 bg-slate-50 dark:bg-slate-800 dark:text-white outline-none">
+                <label class="block text-[10px] font-black text-slate-500 mb-1.5 uppercase ml-1">Số lượng</label>
+                <input type="number" id="inQty" value="1" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 dark:text-white outline-none">
             </div>
         </div>
-        <div class="mt-6 flex flex-wrap gap-3">
-            <button id="btnAdd" onclick="addItem()" class="flex-1 sm:flex-none bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold py-3.5 px-8 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
-                THÊM VẬT TƯ
-            </button>
-            <button id="btnUpdate" onclick="updateItem()" class="hidden flex-1 sm:flex-none bg-sky-500 hover:bg-sky-600 text-white text-sm font-bold py-3.5 px-8 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
-                LƯU THAY ĐỔI
-            </button>
-            <button onclick="clearForm()" class="flex-1 sm:flex-none bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm font-bold py-3.5 px-8 rounded-xl transition-all">LÀM MỚI</button>
+        <div class="mt-4 flex gap-3">
+            <button id="btnAdd" onclick="addItem()" class="bg-indigo-600 text-white font-bold px-6 py-3 rounded-xl shadow-lg">THÊM MỚI</button>
+            <button id="btnUpdate" onclick="updateItem()" class="hidden bg-sky-500 text-white font-bold px-6 py-3 rounded-xl shadow-lg">CẬP NHẬT</button>
+            <button onclick="clearForm()" class="bg-slate-200 dark:bg-slate-800 px-6 py-3 rounded-xl">LÀM MỚI</button>
         </div>
     </div>
 
-    <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 sm:p-6 mb-6">
-        <div class="relative mb-5">
-            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <svg class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-            </div>
-            <input type="text" id="searchInput" oninput="render()" class="w-full pl-11 pr-4 py-4 rounded-2xl border border-slate-200 dark:border-slate-700 focus:border-indigo-500 outline-none transition-all text-base bg-slate-50/50 dark:bg-slate-800 dark:text-white" placeholder="Tìm kiếm nhanh...">
-        </div>
-
+    <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 mb-6">
+        <input type="text" id="searchInput" oninput="render()" class="w-full px-4 py-4 rounded-2xl border border-slate-200 dark:border-slate-700 outline-none bg-slate-50 dark:bg-slate-800 dark:text-white mb-4" placeholder="Tìm kiếm nhanh...">
+        
         <div class="btn-grid flex flex-wrap gap-2">
-            <button id="btnSync" onclick="syncCloud()" class="bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black py-2.5 px-4 rounded-lg shadow-sm transition-all flex items-center justify-center gap-1.5 uppercase disabled:opacity-50">
-                🔄 CLOUD
-            </button>
-            <button onclick="openAdvAuditModal()" class="bg-slate-700 hover:bg-slate-800 text-white text-[10px] font-black py-2.5 px-4 rounded-lg shadow-sm transition-all flex items-center justify-center gap-1.5 uppercase">
-                📋 QUÉT MÃ
-            </button>
-            <button onclick="exportAuditProfessionalReport()" class="bg-indigo-500 hover:bg-indigo-600 text-white text-[10px] font-black py-2.5 px-4 rounded-lg shadow-sm transition-all flex items-center justify-center gap-1.5 uppercase">
-                📄 PHIẾU
-            </button>
-            <button onclick="exportToExcel()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-[10px] font-black py-2.5 px-4 rounded-lg shadow-sm transition-all flex items-center justify-center gap-1.5 uppercase">
-                📊 EXCEL
-            </button>
-            <button onclick="printQRCodeOnly()" class="bg-slate-900 dark:bg-slate-700 hover:bg-black text-white text-[10px] font-black py-2.5 px-4 rounded-lg shadow-sm transition-all flex items-center justify-center gap-1.5 uppercase">
-                🏷️ IN QR
-            </button>
-            <button onclick="location.reload()" class="sm:ml-auto bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-black py-2.5 px-4 rounded-lg shadow-sm transition-all flex items-center justify-center gap-1.5 uppercase">
-                🚪 THOÁT
-            </button>
+            <button onclick="syncCloud()" class="bg-emerald-500 text-white text-[10px] font-black py-2.5 px-4 rounded-lg uppercase">🔄 CLOUD</button>
+            <button onclick="openAdvAuditModal()" class="bg-slate-700 text-white text-[10px] font-black py-2.5 px-4 rounded-lg uppercase">📋 QUÉT MÃ</button>
+            <button onclick="exportAuditProfessionalReport()" class="bg-indigo-500 text-white text-[10px] font-black py-2.5 px-4 rounded-lg uppercase">📄 PHIẾU</button>
+            <button onclick="exportToExcel()" class="bg-emerald-700 text-white text-[10px] font-black py-2.5 px-4 rounded-lg uppercase">📊 EXCEL</button>
+            <button onclick="printQRCodeOnly()" class="bg-slate-900 text-white text-[10px] font-black py-2.5 px-4 rounded-lg uppercase">🏷️ IN QR</button>
+            <button onclick="printLabelsOnly()" class="bg-blue-600 text-white text-[10px] font-black py-2.5 px-4 rounded-lg uppercase">🏷️ IN NHÃN</button>
         </div>
     </div>
 
     <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div class="table-container custom-scrollbar">
-            <table class="w-full text-sm text-left border-separate border-spacing-0">
-                <thead class="bg-slate-50/80 dark:bg-slate-800 sticky top-0 z-10">
-                    <tr>
-                        <th class="px-6 py-5 font-black text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider text-center w-16">STT</th>
-                        <th class="px-6 py-5 font-black text-slate-600 dark:text-slate-300 text-[11px] uppercase tracking-wider min-w-[200px]">Thiết bị & Thông số</th>
-                        <th class="px-6 py-5 font-black text-slate-600 dark:text-slate-300 text-[11px] uppercase tracking-wider">Số Serial (S/N)</th>
-                        <th class="px-6 py-5 font-black text-slate-600 dark:text-slate-300 text-[11px] uppercase tracking-wider text-center">Mã Kho</th>
-                        <th class="px-6 py-5 font-black text-slate-600 dark:text-slate-300 text-[11px] uppercase tracking-wider text-center">SL</th>
-                        <th class="px-6 py-5 font-black text-slate-600 dark:text-slate-300 text-[11px] uppercase tracking-wider text-center">Tình trạng</th>
-                        <th class="px-6 py-5 font-black text-slate-600 dark:text-slate-300 text-[11px] uppercase tracking-wider text-center w-24">Thao tác</th>
+            <table class="w-full text-sm text-left">
+                <thead class="bg-slate-50/80 dark:bg-slate-800">
+                    <tr class="text-[11px] uppercase text-slate-500 font-black">
+                        <th class="px-6 py-5 text-center">STT</th>
+                        <th class="px-6 py-5">Thiết bị</th>
+                        <th class="px-6 py-5">S/N</th>
+                        <th class="px-6 py-5 text-center">Mã Kho</th>
+                        <th class="px-6 py-5 text-center">SL</th>
+                        <th class="px-6 py-5 text-center">Kiểm kê</th>
+                        <th class="px-6 py-5 text-center">Thao tác</th>
                     </tr>
                 </thead>
-                <tbody id="inventoryBody" class="bg-white dark:bg-slate-900"></tbody>
+                <tbody id="inventoryBody"></tbody>
             </table>
         </div>
     </div>
 </div>
 
-<div id="advAuditModal" class="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm hidden items-center justify-center z-[10000] p-4">
-    <div class="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl shadow-2xl w-full max-w-md border border-slate-100 dark:border-slate-800">
-        <h3 class="text-xl font-black text-slate-900 dark:text-white mb-6 flex items-center gap-2">📋 Kiểm kê thực tế</h3>
-        <div class="space-y-4">
-            <div>
-                <label class="block text-[10px] font-black text-slate-500 dark:text-slate-400 mb-1.5 uppercase ml-1">Mã Kho hoặc S/N</label>
-                <input type="text" id="audInput" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-500 outline-none bg-slate-50 dark:bg-slate-800 text-base dark:text-white" placeholder="Nhập hoặc quét mã...">
-            </div>
-            <div>
-                <label class="block text-[10px] font-black text-slate-500 dark:text-slate-400 mb-1.5 uppercase ml-1">Ghi chú</label>
-                <textarea id="audNote" rows="2" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-500 outline-none bg-slate-50 dark:bg-slate-800 text-base dark:text-white resize-none" placeholder="Tình trạng thực tế..."></textarea>
-            </div>
-            <div class="flex gap-4 p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 justify-center">
-                <label class="cursor-pointer flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-bold bg-white dark:bg-slate-900 px-4 py-2 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700">
-                    <input type="radio" name="audStatus" value="OK" checked class="w-4 h-4"> 🟢 OK
-                </label>
-                <label class="cursor-pointer flex items-center gap-2 text-rose-700 dark:text-rose-400 font-bold bg-white dark:bg-slate-900 px-4 py-2 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700">
-                    <input type="radio" name="audStatus" value="MISSING" class="w-4 h-4"> 🔴 THIẾU
-                </label>
-            </div>
+<div id="advAuditModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-[10000] p-4">
+    <div class="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-2xl w-full max-w-md border border-slate-800">
+        <h3 class="text-xl font-black mb-6 text-indigo-950 dark:text-white">📋 Kiểm kê thực tế</h3>
+        <input type="text" id="audInput" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 dark:text-white mb-4 outline-none" placeholder="Quét Mã Kho hoặc S/N...">
+        <textarea id="audNote" rows="2" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 dark:text-white mb-4 outline-none" placeholder="Ghi chú..."></textarea>
+        <div class="flex gap-4 p-3 bg-slate-100 dark:bg-slate-800 rounded-2xl mb-6">
+            <label class="flex-1 text-center cursor-pointer text-xs font-bold text-slate-600 dark:text-slate-400"><input type="radio" name="audStatus" value="OK" checked> 🟢 OK</label>
+            <label class="flex-1 text-center cursor-pointer text-xs font-bold text-slate-600 dark:text-slate-400"><input type="radio" name="audStatus" value="MISSING"> 🔴 THIẾU</label>
         </div>
-        <div class="flex flex-col sm:flex-row gap-3 mt-8">
-            <button onclick="processAdvancedAudit()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-2xl shadow-lg flex-1 order-1 sm:order-2">CẬP NHẬT</button>
-            <button onclick="closeAdvAuditModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-4 rounded-2xl flex-1 order-2 sm:order-1">HỦY</button>
+        <div class="flex gap-3">
+            <button onclick="processAdvancedAudit()" class="flex-1 bg-indigo-600 text-white font-bold py-4 rounded-2xl hover:bg-indigo-700 transition-colors">CẬP NHẬT</button>
+            <button onclick="closeAdvAuditModal()" class="flex-1 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold py-4 rounded-2xl">HỦY</button>
         </div>
     </div>
 </div>
 
 <div id="printQRArea"></div>
+<div id="printLabelArea"></div>
 
 <script>
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyIjGNzZBq5jvoddUuLRFcitskUEy_iD0O9LVwKJVQoKFspSth2FLr4g7PXlMgbCD48/exec";
-    const STORAGE_KEY = 'cns_data_v26_final';
-    let inventory = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    const STORAGE_KEY = 'cns_inventory_v30_stable';
+    
+    let inventory = [];
+    try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        inventory = stored ? JSON.parse(stored) : [];
+    } catch (e) {
+        inventory = [];
+        console.error("Lỗi dữ liệu local:", e);
+    }
+
     let role = null;
 
     function initTheme() {
-        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-            updateThemeUI(true);
-        } else {
-            document.documentElement.classList.remove('dark');
-            updateThemeUI(false);
-        }
+        if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark');
     }
 
     function toggleDarkMode() {
         const isDark = document.documentElement.classList.toggle('dark');
         localStorage.setItem('theme', isDark ? 'dark' : 'light');
-        updateThemeUI(isDark);
-        showToast(`Đã chuyển sang Chế độ ${isDark ? 'tối' : 'sáng'}`, "info");
     }
 
-    function updateThemeUI(isDark) {
-        const icon = isDark ? '☀️' : '🌙';
-        const text = isDark ? 'Chế độ sáng' : 'Chế độ tối';
-        if(document.getElementById('darkIcon')) document.getElementById('darkIcon').innerText = icon;
-        if(document.getElementById('darkIconMob')) document.getElementById('darkIconMob').innerText = icon;
-        if(document.getElementById('darkText')) document.getElementById('darkText').innerText = text;
-    }
-
-    function showToast(message, type = 'info') {
+    function showToast(message) {
         const container = document.getElementById('toastContainer');
         const toast = document.createElement('div');
-        let bgClass = 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100';
-        let icon = '🔔';
-        if (type === 'success') { bgClass = 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-400'; icon = '✅'; }
-        if (type === 'error') { bgClass = 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-400'; icon = '❌'; }
-        toast.className = `toast-enter flex items-center gap-3 px-5 py-4 rounded-2xl border shadow-xl ${bgClass} text-sm font-bold`;
-        toast.innerHTML = `<span>${icon}</span><span class="flex-1">${message}</span>`;
+        toast.className = `flex items-center gap-3 px-5 py-4 rounded-2xl border shadow-xl bg-white dark:bg-slate-800 text-sm font-bold text-indigo-950 dark:text-white transition-all`;
+        toast.innerHTML = `<span>🔔</span><span>${message}</span>`;
         container.appendChild(toast);
-        setTimeout(() => { toast.classList.add('toast-exit'); setTimeout(() => toast.remove(), 300); }, 3000);
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 500);
+        }, 3000);
     }
 
     function checkLogin() {
@@ -294,143 +244,65 @@
             document.getElementById('loginOverlay').classList.add('hidden');
             document.getElementById('mainApp').classList.remove('hidden');
             if(role === 'admin') document.getElementById('adminArea').classList.remove('hidden');
-            showToast("Đăng nhập thành công!", "success");
-            initCloudFirstSync();
+            initCloudSync();
         } else {
-            showToast("Tài khoản hoặc mật khẩu không chính xác!", "error");
+            showToast("Sai tài khoản hoặc mật khẩu!");
         }
     }
 
-    function updateSyncUI(status, message) {
-        const wrapper = document.getElementById('syncStatusWrapper');
-        const icon = document.getElementById('syncIcon');
-        const text = document.getElementById('syncText');
-        wrapper.classList.remove('hidden', 'bg-amber-100', 'text-amber-800', 'bg-emerald-100', 'text-emerald-800', 'bg-rose-100', 'text-rose-800');
-        if (status === 'loading') { wrapper.classList.add('flex', 'bg-amber-100', 'text-amber-800'); icon.innerText = '🟡'; }
-        else if (status === 'online') { wrapper.classList.add('flex', 'bg-emerald-100', 'text-emerald-800'); icon.innerText = '🟢'; }
-        else { wrapper.classList.add('flex', 'bg-rose-100', 'text-rose-800'); icon.innerText = '🔴'; }
-        text.innerText = message;
-    }
-
-    async function initCloudFirstSync() {
-        updateSyncUI('loading', 'Đang kết nối...');
+    async function initCloudSync() {
         try {
-            const response = await fetch(`${WEB_APP_URL}?t=${new Date().getTime()}`);
-            const cloudData = await response.json();
-            if (cloudData && Array.isArray(cloudData)) {
-                if (cloudData.length > 0) {
-                    inventory = cloudData;
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(inventory));
-                    updateSyncUI('online', 'Đã đồng bộ');
-                } else {
-                    updateSyncUI('online', 'Cloud trống');
-                }
+            const res = await fetch(`${WEB_APP_URL}?t=${Date.now()}`);
+            if (!res.ok) throw new Error("Network response was not ok");
+            
+            const text = await res.text();
+            if (!text) return; // Silent return if empty
+            
+            const data = JSON.parse(text);
+            if (data && Array.isArray(data) && data.length > 0) {
+                inventory = data;
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(inventory));
             }
         } catch (e) { 
-            updateSyncUI('offline', 'Chế độ Ngoại tuyến'); 
+            console.warn('Sync failed or offline mode:', e.message); 
         }
         render();
     }
 
     async function syncCloud() {
-        const btn = document.getElementById('btnSync');
-        btn.disabled = true;
-        updateSyncUI('loading', 'Đang đẩy...');
         try {
             const params = new URLSearchParams();
             params.append('data', JSON.stringify(inventory));
-            await fetch(WEB_APP_URL, {
-                method: "POST",
-                mode: "no-cors",
-                body: params,
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-            });
-            setTimeout(() => {
-                showToast("Đã lưu lên Cloud!", "success");
-                updateSyncUI('online', 'Đã lưu Cloud');
-                btn.disabled = false;
-            }, 1000);
-        } catch (e) {
-            showToast("Lỗi đồng bộ!", "error");
-            updateSyncUI('offline', 'Lỗi kết nối');
-            btn.disabled = false;
+            await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: params });
+            showToast("Đã gửi yêu cầu lưu Cloud!");
+        } catch (e) { 
+            showToast("Lỗi kết nối Cloud!"); 
         }
     }
 
     function render() {
         const tbody = document.getElementById('inventoryBody');
+        if (!tbody) return;
         const q = document.getElementById('searchInput').value.trim().toLowerCase();
         tbody.innerHTML = '';
-        let rowCount = 0;
-
+        let count = 0;
         inventory.forEach((item, idx) => {
-            if (Object.values(item).some(v => String(v).toLowerCase().includes(q))) {
-                rowCount++;
-                let badge = '<span class="text-slate-300 dark:text-slate-600 italic text-xs font-medium">--</span>';
-                if(item.auditStatus === 'OK') {
-                    badge = `
-                        <div class="flex flex-col items-center">
-                            <span class="inline-flex items-center bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 px-2.5 py-1 rounded-full text-[10px] font-bold border border-emerald-100 dark:border-emerald-900">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>SẴN SÀNG
-                            </span>
-                            <span class="text-[9px] text-slate-400 mt-1">${item.auditDate}</span>
-                        </div>`;
-                }
-                if(item.auditStatus === 'MISSING') {
-                    badge = `
-                        <div class="flex flex-col items-center">
-                            <span class="inline-flex items-center bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 px-2.5 py-1 rounded-full text-[10px] font-bold border border-rose-100 dark:border-rose-900">
-                                <span class="w-1.5 h-1.5 rounded-full bg-rose-500 mr-1.5"></span>THIẾU/LỖI
-                            </span>
-                            <span class="text-[9px] text-slate-400 mt-1">${item.auditDate}</span>
-                        </div>`;
-                }
-
+            const searchable = `${item.name} ${item.sn} ${item.pn} ${item.warehouse}`.toLowerCase();
+            if (searchable.includes(q)) {
+                count++;
+                const badge = item.auditStatus === 'OK' ? '<span class="text-emerald-500 font-bold text-[10px]">🟢 OK</span>' : (item.auditStatus === 'MISSING' ? '<span class="text-rose-500 font-bold text-[10px]">🔴 THIẾU</span>' : '--');
                 tbody.innerHTML += `
-                <tr class="inventory-row">
-                    <td class="px-6 py-6 text-center">
-                        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-800 text-indigo-900 dark:text-slate-400 font-bold text-xs border border-slate-100 dark:border-slate-700">${rowCount}</span>
-                    </td>
-                    <td class="px-6 py-6">
-                        <div class="flex flex-col">
-                            <span class="text-indigo-950 dark:text-white font-bold text-[15px] leading-tight mb-1">${item.name}</span>
-                            <span class="text-slate-400 dark:text-slate-500 text-xs font-medium">P/N: ${item.pn || 'N/A'}</span>
-                        </div>
-                    </td>
-                    <td class="px-6 py-6">
-                        <span class="font-mono text-[13px] text-indigo-900 dark:text-slate-300 bg-indigo-50/50 dark:bg-slate-800 px-2 py-1 rounded border border-indigo-100 dark:border-slate-700">${item.sn}</span>
-                    </td>
-                    <td class="px-6 py-6 text-center">
-                        ${item.warehouse ? `<span class="badge-warehouse">${item.warehouse}</span>` : '--'}
-                    </td>
-                    <td class="px-6 py-6 text-center">
-                        <span class="text-indigo-950 dark:text-white font-black text-base">${item.qty}</span>
-                    </td>
-                    <td class="px-6 py-6">
-                        <div class="flex flex-col">
-                            <span class="text-slate-900 dark:text-white font-bold text-[15px] leading-tight mb-1">${item.name}</span>
-                            <span class="text-slate-400 dark:text-slate-500 text-xs font-medium">P/N: ${item.pn || 'N/A'}</span>
-                        </div>
-                    </td>
-                    <td class="px-6 py-6">
-                        <span class="font-mono text-[13px] text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded border border-slate-100 dark:border-slate-700">${item.sn}</span>
-                    </td>
-                    <td class="px-6 py-6 text-center">
-                        ${item.warehouse ? `<span class="badge-warehouse">${item.warehouse}</span>` : '--'}
-                    </td>
-                    <td class="px-6 py-6 text-center">
-                        <span class="text-slate-900 dark:text-white font-black text-base">${item.qty}</span>
-                    </td>
-                    <td class="px-6 py-6 text-center leading-none">${badge}</td>
-                    <td class="px-6 py-6 text-center">
-                        <div class="flex justify-center gap-2">
-                            <button class="w-9 h-9 flex items-center justify-center bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 transition-all active:scale-95" onclick="editItem(${idx})">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                            </button>
-                            ${role === 'admin' ? `
-                            <button class="w-9 h-9 flex items-center justify-center bg-white dark:bg-slate-800 text-rose-500 hover:bg-rose-600 hover:text-white rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 transition-all active:scale-95" onclick="deleteItem(${idx})">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                            </button>` : ''}
+                <tr class="inventory-row border-b border-slate-100 dark:border-slate-800">
+                    <td class="px-6 py-4 text-center font-bold text-slate-400">${count}</td>
+                    <td class="px-6 py-4 font-bold text-indigo-900 dark:text-white">${item.name}<br><span class="text-[10px] text-slate-400 font-normal">P/N: ${item.pn || 'N/A'}</span></td>
+                    <td class="px-6 py-4 font-mono text-xs">${item.sn}</td>
+                    <td class="px-6 py-4 text-center"><span class="bg-indigo-50 dark:bg-slate-800 px-2 py-1 rounded text-indigo-700 dark:text-indigo-300 font-bold text-[11px] border border-indigo-100 dark:border-slate-700">${item.warehouse || '--'}</span></td>
+                    <td class="px-6 py-4 text-center font-black">${item.qty}</td>
+                    <td class="px-6 py-4 text-center">${badge}<br><span class="text-[8px] opacity-50">${item.auditDate || ''}</span></td>
+                    <td class="px-6 py-4 text-center">
+                        <div class="flex gap-2 justify-center">
+                            <button onclick="editItem(${idx})" class="p-2 bg-indigo-50 dark:bg-slate-800 text-indigo-600 rounded-lg">✏️</button>
+                            ${role === 'admin' ? `<button onclick="deleteItem(${idx})" class="p-2 bg-rose-50 dark:bg-slate-800 text-rose-500 rounded-lg">🗑️</button>` : ''}
                         </div>
                     </td>
                 </tr>`;
@@ -441,7 +313,7 @@
     function addItem() {
         const name = document.getElementById('inName').value.trim();
         const sn = document.getElementById('inSN').value.trim();
-        if(!name || !sn) return showToast("Vui lòng nhập Tên và S/N!", "error");
+        if(!name || !sn) return showToast("Nhập tên và S/N!");
         inventory.push({
             name, sn,
             pn: document.getElementById('inPN').value.trim(),
@@ -450,37 +322,11 @@
             loc: document.getElementById('inLoc').value.trim(),
             auditStatus: null, auditDate: null, auditNote: ""
         });
-        save();
-        clearForm();
-        showToast("Đã thêm vật tư!", "success");
-    }
-
-    function updateItem() {
-        const idx = document.getElementById('editIndex').value;
-        if(idx === "-1") return;
-        inventory[idx] = { ...inventory[idx],
-            name: document.getElementById('inName').value.trim(),
-            sn: document.getElementById('inSN').value.trim(),
-            pn: document.getElementById('inPN').value.trim(),
-            warehouse: document.getElementById('inWarehouse').value.trim().toUpperCase(),
-            qty: parseInt(document.getElementById('inQty').value) || 1,
-            loc: document.getElementById('inLoc').value.trim()
-        };
-        save();
-        clearForm();
-        showToast("Đã cập nhật!", "success");
-    }
-
-    function deleteItem(idx) {
-        if(confirm(`Xác nhận xóa: ${inventory[idx].name}?`)) {
-            inventory.splice(idx, 1);
-            save();
-            showToast("Đã xóa!", "success");
-        }
+        save(); clearForm(); showToast("Đã thêm!");
     }
 
     function editItem(idx) {
-        if(role !== 'admin') return showToast("Yêu cầu quyền Admin!", "error");
+        if(role !== 'admin') return showToast("Quyền Admin!");
         const i = inventory[idx];
         document.getElementById('editIndex').value = idx;
         document.getElementById('inName').value = i.name;
@@ -492,6 +338,24 @@
         document.getElementById('btnAdd').classList.add('hidden');
         document.getElementById('btnUpdate').classList.remove('hidden');
         window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function updateItem() {
+        const idx = document.getElementById('editIndex').value;
+        if (idx === "-1") return;
+        inventory[idx] = { ...inventory[idx],
+            name: document.getElementById('inName').value.trim(),
+            sn: document.getElementById('inSN').value.trim(),
+            pn: document.getElementById('inPN').value.trim(),
+            warehouse: document.getElementById('inWarehouse').value.trim().toUpperCase(),
+            qty: parseInt(document.getElementById('inQty').value) || 1,
+            loc: document.getElementById('inLoc').value.trim()
+        };
+        save(); clearForm(); showToast("Đã cập nhật!");
+    }
+
+    function deleteItem(idx) {
+        if(confirm("Xóa thiết bị này?")) { inventory.splice(idx, 1); save(); }
     }
 
     function clearForm() {
@@ -513,68 +377,237 @@
         const input = document.getElementById('audInput').value.trim().toUpperCase();
         const nt = document.getElementById('audNote').value.trim();
         const st = document.querySelector('input[name="audStatus"]:checked').value;
-        const dt = new Date().toLocaleDateString('vi-VN');
-        if(!input) return showToast("Nhập S/N hoặc Mã Kho!", "error");
-        let foundCount = 0;
-        inventory.forEach(item => {
-            if(item.warehouse === input || item.sn === input) {
-                item.auditStatus = st; item.auditDate = dt; item.auditNote = nt; foundCount++;
-            }
+        const now = new Date();
+        const dt = now.toLocaleDateString('vi-VN') + ' ' + now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
+        
+        let found = 0;
+        inventory.forEach(i => {
+            if(i.warehouse === input || i.sn === input) { i.auditStatus = st; i.auditDate = dt; i.auditNote = nt; found++; }
         });
-        if(foundCount > 0) { save(); showToast(`Đã kiểm kê ${foundCount} thiết bị`, "success"); closeAdvAuditModal(); }
-        else showToast("Không tìm thấy!", "error");
-    }
-
-    function exportToExcel() {
-        const ws = XLSX.utils.json_to_sheet(inventory);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Inventory");
-        XLSX.writeFile(wb, `Kho_CNS_${new Date().toISOString().slice(0,10)}.xlsx`);
+        
+        if(found > 0) { save(); showToast(`Đã kiểm kê ${found} mục`); closeAdvAuditModal(); syncCloud(); }
+        else showToast("Không tìm thấy!");
     }
 
     function printQRCodeOnly() {
+        document.getElementById('printLabelArea').innerHTML = '';
         const area = document.getElementById('printQRArea');
         area.innerHTML = '';
-        const filtered = inventory.filter(i => i.warehouse);
-        if(filtered.length === 0) return showToast("Không có mã kho!", "error");
-        filtered.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'qr-item';
-            const qrCanvas = kjua({ text: item.warehouse, size: 200, quiet: 1 });
-            div.appendChild(qrCanvas);
-            div.innerHTML += `<div class="qr-text">${item.warehouse}</div>`;
-            div.innerHTML += `<div style="font-size:6pt; text-align:center">${item.name.substring(0,25)}</div>`;
-            area.appendChild(div);
+        inventory.forEach(item => {
+            if(item.warehouse) {
+                const div = document.createElement('div');
+                div.className = 'qr-item';
+                div.innerHTML = `<div class="qr-target"></div><div class="qr-text">${item.warehouse}<br>${item.sn}</div>`;
+                area.appendChild(div);
+                if (typeof kjua === 'function') {
+                    kjua({ render: 'canvas', text: item.warehouse, size: 200, fill: '#000', back: '#fff', container: div.querySelector('.qr-target') });
+                }
+            }
         });
-        setTimeout(() => window.print(), 500);
+        setTimeout(() => window.print(), 700);
+    }
+
+    function printLabelsOnly() {
+        document.getElementById('printQRArea').innerHTML = '';
+        const area = document.getElementById('printLabelArea');
+        area.innerHTML = '';
+        inventory.forEach(item => {
+            area.innerHTML += `
+                <div class="label-item">
+                    <div class="label-name">${item.name}</div>
+                    <div class="label-row"><b>P/N:</b> ${item.pn || 'N/A'}</div>
+                    <div class="label-row"><b>S/N:</b> ${item.sn}</div>
+                    <div class="label-row"><b>Mã Kho:</b> ${item.warehouse || 'N/A'}</div>
+                </div>`;
+        });
+        setTimeout(() => window.print(), 700);
     }
 
     function exportAuditProfessionalReport() {
         const win = window.open('','_blank');
+        const now = new Date();
+        const dateStr = `Ngày ${now.getDate()} tháng ${now.getMonth() + 1} năm ${now.getFullYear()}`;
+        const timeStr = `${now.getHours()}h${String(now.getMinutes()).padStart(2, '0')}`;
+
         const rows = inventory.map((i,x) => `
             <tr>
                 <td>${x+1}</td>
-                <td style="text-align:left">${i.name}</td>
-                <td>${i.sn}</td>
-                <td>${i.auditStatus === 'OK' ? '🟢 OK' : (i.auditStatus === 'MISSING' ? '🔴 THIẾU' : '-')}</td>
-                <td>${i.auditDate||'-'}</td>
-                <td style="text-align:left">${i.auditNote||'-'}</td>
+                <td style="text-align:left; font-weight:bold; width: 25%;">${i.name}</td>
+                <td style="width: 10%;">${i.pn || '-'}</td>
+                <td style="font-family:monospace; font-size:10pt; width: 15%;">${i.sn}</td>
+                <td style="background-color: #f8fafc; font-weight: bold; width: 10%;">${i.warehouse || '-'}</td>
+                <td style="width: 5%; font-weight: bold;">${i.qty}</td>
+                <td style="width: 10%;">${i.auditStatus === 'OK' ? '🟢 OK' : (i.auditStatus === 'MISSING' ? '🔴 THIẾU' : '-')}</td>
+                <td style="text-align:left; font-size:9pt; width: 25%;">
+                    ${i.auditDate ? `<b>${i.auditDate}</b><br>` : ''}
+                    <i>${i.auditNote || ''}</i>
+                </td>
             </tr>`).join('');
+
         win.document.write(`
-            <html><head><style>
-                body{font-family:serif;padding:30px;font-size:12px;}
-                table{width:100%;border-collapse:collapse;margin-top:15px;}
-                th,td{border:1px solid #000;padding:6px;text-align:center;}
-            </style></head><body>
-                <h2 style="text-align:center">BIÊN BẢN KIỂM KÊ VẬT TƯ</h2>
-                <table><thead><tr><th>STT</th><th>Thiết bị</th><th>S/N</th><th>Trạng thái</th><th>Ngày kiểm</th><th>Ghi chú</th></tr></thead>
-                <tbody>${rows}</tbody></table>
-                <script>window.onload=()=>window.print()</` + `script>
-            </body></html>`);
+            <html>
+            <head>
+                <title>Biên bản kiểm kê - CNS/ATM</title>
+                <style>
+                    /* Cấu hình in khổ ngang tự động */
+                    @page { 
+                        size: A4 landscape; 
+                        margin: 15mm 10mm 15mm 10mm; 
+                    }
+                    body { 
+                        font-family: "Times New Roman", serif; 
+                        font-size: 12pt; 
+                        margin: 0; 
+                        padding: 0;
+                        color: #1a1a1a;
+                        counter-reset: page;
+                    }
+                    .page-container {
+                        padding: 10px;
+                    }
+                    .header { 
+                        width: 100%; 
+                        display: flex; 
+                        justify-content: space-between; 
+                        margin-bottom: 30px;
+                    }
+                    .header-left, .header-right {
+                        text-align: center;
+                        width: 45%;
+                    }
+                    .title { 
+                        text-align: center; 
+                        font-weight: bold; 
+                        font-size: 18pt; 
+                        margin: 10px 0 5px;
+                        text-transform: uppercase;
+                    }
+                    .subtitle {
+                        text-align: center;
+                        font-style: italic;
+                        margin-bottom: 25px;
+                        font-size: 11pt;
+                    }
+                    table { 
+                        width: 100%; 
+                        border-collapse: collapse; 
+                        margin-top: 10px; 
+                        table-layout: fixed; /* Cố định chiều rộng cột */
+                    }
+                    th, td { 
+                        border: 1px solid black; 
+                        padding: 8px 4px; 
+                        text-align: center; 
+                        word-wrap: break-word;
+                        page-break-inside: avoid;
+                    }
+                    th { 
+                        background-color: #f2f2f2; 
+                        font-size: 10pt; 
+                        text-transform: uppercase;
+                    }
+                    .sign-section {
+                        margin-top: 40px;
+                        display: grid;
+                        grid-template-columns: 1fr 1fr 1fr;
+                        text-align: center;
+                        page-break-inside: avoid;
+                    }
+                    .sign-box {
+                        padding: 10px;
+                    }
+                    .sign-title {
+                        font-weight: bold;
+                        margin-bottom: 60px;
+                    }
+                    .footer { 
+                        position: fixed; 
+                        bottom: 5mm; 
+                        right: 10mm;
+                        font-size: 9pt; 
+                        font-style: italic; 
+                    }
+                    .footer:after { 
+                        counter-increment: page; 
+                        content: "Trang " counter(page); 
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="page-container">
+                    <div class="header">
+                        <div class="header-left">
+                            CÔNG TY QUẢN LÝ BAY MIỀN NAM<br>
+                            <b>TRUNG TÂM BẢO ĐẢM KỸ THUẬT</b><br>
+                            <u><b>ĐỘI THÔNG TIN</b></u>
+                        </div>
+                        <div class="header-right">
+                            <b>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</b><br>
+                            <b>Độc lập - Tự do - Hạnh phúc</b><br>
+                            <div style="margin-top: 5px;"><i>..........., ${dateStr}</i></div>
+                        </div>
+                    </div>
+
+                    <div class="title">BIÊN BẢN KIỂM KÊ VẬT TƯ THIẾT BỊ</div>
+                    <div class="subtitle">Thời điểm kiểm kê: ${timeStr}, ${dateStr}</div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 35px;">STT</th>
+                                <th>Tên Thiết Bị / Vật Tư</th>
+                                <th>P/N</th>
+                                <th>S/N</th>
+                                <th>Mã Kho</th>
+                                <th style="width: 45px;">SL</th>
+                                <th>Tình trạng</th>
+                                <th>Ghi chú kiểm kê</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+
+                    <div class="sign-section">
+                        <div class="sign-box">
+                            <div class="sign-title">NGƯỜI LẬP BIỂU</div>
+                            <div>(Ký, ghi rõ họ tên)</div>
+                        </div>
+                        <div class="sign-box">
+                            <div class="sign-title">THÀNH VIÊN KIỂM KÊ</div>
+                            <div>(Ký, ghi rõ họ tên)</div>
+                        </div>
+                        <div class="sign-box">
+                            <div class="sign-title">ĐỘI TRƯỞNG XÁC NHẬN</div>
+                            <div>(Ký, ghi rõ họ tên)</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="footer"></div>
+                <script>
+                    window.onload = () => { 
+                        setTimeout(() => { 
+                            window.print(); 
+                            // window.close(); 
+                        }, 800); 
+                    }
+                <\/script>
+            </body>
+            </html>
+        `);
         win.document.close();
     }
 
-    window.onload = () => { initTheme(); };
+    function exportToExcel() {
+        if (typeof XLSX === 'undefined') return showToast("Lỗi thư viện Excel!");
+        const ws = XLSX.utils.json_to_sheet(inventory);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Inventory");
+        XLSX.writeFile(wb, `Inventory_CNS_${new Date().toISOString().slice(0,10)}.xlsx`);
+    }
+
+    window.onload = () => { 
+        initTheme(); 
+    };
 </script>
 </body>
 </html>
