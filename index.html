@@ -231,7 +231,7 @@
 <div id="printQRArea"></div>
 
 <script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyIjGNzZBq5jvoddUuLRFcitskUEy_iD0O9LVwKJVQoKFspSth2FLr4g7PXlMgbCD48/exec";
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycby0p5dZFCAuvA4Bzc-XVpFCBO2zlFbUaOs1xoHr3wihErsLhO0IcuRUKhJQMFWu6Fbr/exec";
     const STORAGE_KEY = 'cns_data_v26_final';
     let inventory = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
     let role = null;
@@ -318,10 +318,14 @@
                     <td class="px-4 py-4 text-center"><span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded text-[10px] font-bold">${item.warehouse||'-'}</span></td>
                     <td class="px-4 py-4 text-center font-black">${item.qty}</td>
                     <td class="px-4 py-4 flex justify-center items-center h-full">${badge}</td>
-                    <td class="px-4 py-4 text-center">
-                        <button class="bg-slate-100 text-slate-600 hover:bg-indigo-600 hover:text-white p-2 rounded-lg transition-all" onclick="editItem(${idx})">
+                    <td class="px-4 py-4 text-center flex justify-center gap-1">
+                        <button class="bg-slate-100 text-slate-600 hover:bg-indigo-600 hover:text-white p-2 rounded-lg transition-all" title="Sửa" onclick="editItem(${idx})">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                         </button>
+                        ${role === 'admin' ? `
+                        <button class="bg-slate-100 text-rose-500 hover:bg-rose-600 hover:text-white p-2 rounded-lg transition-all" title="Xóa" onclick="deleteItem(${idx})">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>` : ''}
                     </td>
                 </tr>`;
             }
@@ -347,6 +351,19 @@
         });
         if(count > 0) { save(); showToast(`Đã kiểm kê ${count} thiết bị`, "success"); closeAdvAuditModal(); }
         else showToast("Không tìm thấy!", "error");
+    }
+
+    function deleteItem(idx) {
+        if (role !== 'admin') {
+            showToast("Chỉ Admin mới có quyền xóa!", "error");
+            return;
+        }
+        
+        const itemName = inventory[idx].name;
+        // Thực hiện xóa và cập nhật UI
+        inventory.splice(idx, 1);
+        save();
+        showToast(`Đã xóa thiết bị: ${itemName}`, "success");
     }
 
     function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(inventory)); render(); }
