@@ -129,6 +129,31 @@ tailwind.config = {
 
     </div>
 
+    <!-- DASHBOARD -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+
+        <div class="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800">
+            <div class="text-sm text-slate-500">Tổng thiết bị</div>
+            <div id="dashDevices" class="text-3xl font-black mt-2">0</div>
+        </div>
+
+        <div class="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800">
+            <div class="text-sm text-slate-500">Tổng số lượng</div>
+            <div id="dashQty" class="text-3xl font-black mt-2">0</div>
+        </div>
+
+        <div class="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800">
+            <div class="text-sm text-slate-500">Tổng kho</div>
+            <div id="dashWarehouse" class="text-3xl font-black mt-2">0</div>
+        </div>
+
+        <div class="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800">
+            <div class="text-sm text-slate-500">Sắp hết</div>
+            <div id="dashLow" class="text-3xl font-black mt-2 text-rose-600">0</div>
+        </div>
+
+    </div>
+
     <!-- ADMIN -->
     <div id="adminPanel"
         class="hidden bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-6">
@@ -144,23 +169,12 @@ tailwind.config = {
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
-            <input id="name" type="text" placeholder="Tên thiết bị"
-                class="inputStyle">
-
-            <input id="pn" type="text" placeholder="Part Number"
-                class="inputStyle">
-
-            <input id="sn" type="text" placeholder="Serial Number"
-                class="inputStyle">
-
-            <input id="warehouse" type="text" placeholder="Mã Kho"
-                class="inputStyle uppercase">
-
-            <input id="location" type="text" placeholder="Vị trí"
-                class="inputStyle">
-
-            <input id="qty" type="number" min="1" value="1"
-                class="inputStyle">
+            <input id="name" type="text" placeholder="Tên thiết bị" class="inputStyle">
+            <input id="pn" type="text" placeholder="Part Number" class="inputStyle">
+            <input id="sn" type="text" placeholder="Serial Number" class="inputStyle">
+            <input id="warehouse" type="text" placeholder="Mã Kho" class="inputStyle uppercase">
+            <input id="location" type="text" placeholder="Vị trí" class="inputStyle">
+            <input id="qty" type="number" min="0" value="1" class="inputStyle">
 
         </div>
 
@@ -210,6 +224,21 @@ tailwind.config = {
                     📊 EXCEL
                 </button>
 
+                <button onclick="exportInventoryReport()"
+                    class="toolbarBtn bg-indigo-600 text-white">
+                    📦 BÁO CÁO
+                </button>
+
+                <button onclick="backupData()"
+                    class="toolbarBtn bg-amber-600 text-white">
+                    💾 BACKUP
+                </button>
+
+                <label class="toolbarBtn bg-slate-200 dark:bg-slate-800 cursor-pointer">
+                    📂 IMPORT
+                    <input type="file" hidden onchange="importBackup(event)">
+                </label>
+
                 <button onclick="printQR()"
                     class="toolbarBtn bg-slate-200 dark:bg-slate-800">
                     🏷️ QR
@@ -231,7 +260,7 @@ tailwind.config = {
 
         <div class="overflow-auto custom-scrollbar">
 
-            <table class="w-full min-w-[1000px] text-sm">
+            <table class="w-full min-w-[1200px] text-sm">
 
                 <thead class="bg-slate-100 dark:bg-slate-800">
                     <tr class="text-left uppercase text-xs">
@@ -243,6 +272,7 @@ tailwind.config = {
                         <th class="p-4">Mã Kho</th>
                         <th class="p-4">Vị trí</th>
                         <th class="p-4">SL</th>
+                        <th class="p-4">Tồn kho</th>
                         <th class="p-4 text-center">QR</th>
                         <th class="p-4 text-center">Thao tác</th>
 
@@ -288,7 +318,7 @@ tailwind.config = {
 
 <script>
 
-const STORAGE_KEY = "cns_inventory_full_v1";
+const STORAGE_KEY = "cns_inventory_full_v2";
 const SESSION_KEY = "cns_session";
 
 const WEB_APP_URL = "YOUR_GOOGLE_APPS_SCRIPT_URL";
@@ -297,6 +327,7 @@ let inventory = [];
 let role = null;
 
 function showToast(message,type="info"){
+
     const container = document.getElementById("toastContainer");
 
     const div = document.createElement("div");
@@ -350,7 +381,12 @@ function logout(){
 }
 
 function saveData(){
-    localStorage.setItem(STORAGE_KEY,JSON.stringify(inventory));
+
+    localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(inventory)
+    );
+
     renderTable();
 }
 
@@ -370,7 +406,7 @@ function addItem(){
         sn:sn,
         warehouse:document.getElementById("warehouse").value.trim().toUpperCase(),
         location:document.getElementById("location").value.trim(),
-        qty:parseInt(document.getElementById("qty").value)||1
+        qty:parseInt(document.getElementById("qty").value)||0
     });
 
     saveData();
@@ -419,7 +455,7 @@ function updateItem(){
         sn:document.getElementById("sn").value.trim(),
         warehouse:document.getElementById("warehouse").value.trim().toUpperCase(),
         location:document.getElementById("location").value.trim(),
-        qty:parseInt(document.getElementById("qty").value)||1
+        qty:parseInt(document.getElementById("qty").value)||0
     };
 
     saveData();
@@ -455,6 +491,31 @@ function clearForm(){
     document.getElementById("btnUpdate").classList.add("hidden");
 }
 
+function getStockStatus(qty){
+
+    if(qty === 0){
+        return `
+            <span class="px-2 py-1 rounded bg-rose-100 text-rose-700 text-xs font-bold">
+                HẾT HÀNG
+            </span>
+        `;
+    }
+
+    if(qty <= 2){
+        return `
+            <span class="px-2 py-1 rounded bg-amber-100 text-amber-700 text-xs font-bold">
+                SẮP HẾT
+            </span>
+        `;
+    }
+
+    return `
+        <span class="px-2 py-1 rounded bg-emerald-100 text-emerald-700 text-xs font-bold">
+            CÒN HÀNG
+        </span>
+    `;
+}
+
 function renderTable(){
 
     const tbody = document.getElementById("tableBody");
@@ -465,6 +526,9 @@ function renderTable(){
 
     let totalQty = 0;
     let count = 0;
+    let lowStock = 0;
+
+    const warehouseSet = new Set();
 
     inventory.forEach((item,index)=>{
 
@@ -480,6 +544,12 @@ function renderTable(){
 
             count++;
             totalQty += item.qty;
+
+            warehouseSet.add(item.warehouse);
+
+            if(item.qty <= 2){
+                lowStock++;
+            }
 
             const tr = document.createElement("tr");
 
@@ -503,6 +573,10 @@ function renderTable(){
                 <td class="p-4">${item.location || '-'}</td>
 
                 <td class="p-4 font-bold">${item.qty}</td>
+
+                <td class="p-4">
+                    ${getStockStatus(item.qty)}
+                </td>
 
                 <td class="p-4 text-center">
                     <button onclick="showQR('${item.warehouse || item.sn}')"
@@ -545,6 +619,11 @@ function renderTable(){
 
     document.getElementById("totalText").innerHTML =
         `Tổng thiết bị: <b>${count}</b> | Tổng số lượng: <b>${totalQty}</b>`;
+
+    document.getElementById("dashDevices").innerText = count;
+    document.getElementById("dashQty").innerText = totalQty;
+    document.getElementById("dashWarehouse").innerText = warehouseSet.size;
+    document.getElementById("dashLow").innerText = lowStock;
 }
 
 function showQR(text){
@@ -601,6 +680,61 @@ function exportExcel(){
     );
 
     showToast("Xuất Excel thành công","success");
+}
+
+function exportInventoryReport(){
+
+    const report = inventory.map((item,index)=>{
+
+        let status = "CÒN HÀNG";
+
+        if(item.qty === 0){
+            status = "HẾT HÀNG";
+        }else if(item.qty <= 2){
+            status = "SẮP HẾT";
+        }
+
+        return {
+            STT:index + 1,
+            "Tên thiết bị":item.name,
+            "Part Number":item.pn,
+            "Serial Number":item.sn,
+            "Mã Kho":item.warehouse,
+            "Vị trí":item.location,
+            "Số lượng":item.qty,
+            "Tình trạng":status,
+            "Ngày xuất":new Date().toLocaleString("vi-VN")
+        };
+    });
+
+    const ws = XLSX.utils.json_to_sheet(report);
+
+    ws['!cols'] = [
+        {wch:6},
+        {wch:30},
+        {wch:20},
+        {wch:20},
+        {wch:15},
+        {wch:20},
+        {wch:10},
+        {wch:15},
+        {wch:25}
+    ];
+
+    const wb = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(
+        wb,
+        ws,
+        "BaoCaoTonKho"
+    );
+
+    XLSX.writeFile(
+        wb,
+        `BAO_CAO_TON_KHO_${Date.now()}.xlsx`
+    );
+
+    showToast("Xuất báo cáo tồn kho thành công","success");
 }
 
 function printQR(){
@@ -673,9 +807,54 @@ function printLabels(){
     },500);
 }
 
+function backupData(){
+
+    const blob = new Blob(
+        [JSON.stringify(inventory,null,2)],
+        {type:"application/json"}
+    );
+
+    const a = document.createElement("a");
+
+    a.href = URL.createObjectURL(blob);
+
+    a.download = "CNS_BACKUP.json";
+
+    a.click();
+
+    showToast("Đã backup dữ liệu","success");
+}
+
+function importBackup(event){
+
+    const file = event.target.files[0];
+
+    if(!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = function(e){
+
+        try{
+
+            inventory = JSON.parse(e.target.result);
+
+            saveData();
+
+            showToast("Khôi phục dữ liệu thành công","success");
+
+        }catch{
+
+            showToast("File backup không hợp lệ","error");
+        }
+    };
+
+    reader.readAsText(file);
+}
+
 async function syncCloud(){
 
-    if(WEB_APP_URL === "YOUR_GOOGLE_APPS_SCRIPT_URL"){
+    if(WEB_APP_URL === "https://script.google.com/macros/s/AKfycby3ecczSKLGb81GXQSqirqM0s-qQH-jQDjJpZQohnNS_aUQgtH15KzvB8JYr7LJbYql/exec"){
         showToast("Chưa cấu hình Google Apps Script","error");
         return;
     }
