@@ -1,931 +1,663 @@
+
 <!DOCTYPE html>
 <html lang="vi" class="antialiased">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CNS/ATM INVENTORY PRO</title>
-
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/kjua@0.9.0/dist/kjua.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-
-<style>
-body{
-    font-family:'Inter',sans-serif;
-}
-.custom-scrollbar::-webkit-scrollbar{
-    width:6px;
-    height:6px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb{
-    background:#94a3b8;
-    border-radius:10px;
-}
-@media print{
-    body *{
-        visibility:hidden;
-    }
-    #printArea,
-    #printArea *{
-        visibility:visible;
-    }
-    #printArea{
-        position:absolute;
-        left:0;
-        top:0;
-        width:100%;
-    }
-}
-</style>
-
-<script>
-tailwind.config = {
-    darkMode:'class',
-    theme:{
-        extend:{
-            fontFamily:{
-                sans:['Inter','sans-serif']
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CNS/ATM INVENTORY - ĐỘI THÔNG TIN</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        brand: {
+                            50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd', 400: '#60a5fa',
+                            500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 800: '#1e40af', 900: '#1e3a8a', 950: '#172554',
+                        }
+                    }
+                }
             }
         }
-    }
-}
-</script>
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/kjua@0.9.0/dist/kjua.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; transition: background-color 0.3s ease; }
+        .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; }
+        
+        .table-container { -webkit-overflow-scrolling: touch; }
+        
+        @media print {
+            body * { visibility: hidden; }
+            #printQRArea, #printQRArea *, #printLabelArea, #printLabelArea * { visibility: visible; }
+            #printQRArea { position: absolute; left: 0; top: 0; width: 100%; display: grid !important; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+            #printLabelArea { position: absolute; left: 0; top: 0; width: 100%; display: grid !important; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+            .qr-item { border: 1px solid #eee; padding: 5px; text-align: center; page-break-inside: avoid; }
+            .label-item { border: 2px solid #000; padding: 10px; height: 150px; display: flex; flex-direction: column; justify-content: center; page-break-inside: avoid; }
+            .label-name { font-weight: bold; border-bottom: 1px solid #000; margin-bottom: 5px; font-size: 14px; text-transform: uppercase; }
+        }
+
+        #loginOverlay { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    </style>
 </head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
 
-<body class="bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-white">
+<div id="toastContainer" class="fixed top-6 right-6 z-[100000] flex flex-col gap-3 w-full max-w-[calc(100%-3rem)] sm:max-w-sm"></div>
 
-<div id="toastContainer" class="fixed top-5 right-5 z-50 space-y-2"></div>
-
-<!-- LOGIN -->
-<div id="loginPage" class="fixed inset-0 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm z-40">
-    <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl shadow-2xl p-10 border border-slate-200 dark:border-slate-800">
-
-        <div class="text-center mb-8">
-            <div class="w-20 h-20 rounded-3xl bg-blue-600 mx-auto flex items-center justify-center text-white shadow-xl">
-                📦
+<!-- Login UI -->
+<div id="loginOverlay" class="fixed inset-0 bg-slate-900/40 dark:bg-black/60 flex items-center justify-center z-[50000] p-4 transition-all duration-500">
+    <div class="bg-white dark:bg-slate-900 p-8 sm:p-12 rounded-[2.5rem] shadow-2xl w-full max-w-md border border-white/20 dark:border-slate-800 transform transition-all">
+        <div class="text-center mb-10">
+            <div class="w-20 h-20 bg-brand-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-brand-500/20">
+                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
             </div>
-
-            <h1 class="text-3xl font-black mt-5">
-                CNS/ATM
-            </h1>
-
-            <p class="text-sm text-slate-500 mt-2">
-                Quản lý vật tư Đội Thông Tin
-            </p>
+            <h1 class="text-4xl font-black text-slate-900 dark:text-white tracking-tight">CNS/ATM</h1>
+            <p class="text-xs font-bold text-slate-400 dark:text-slate-500 mt-3 uppercase tracking-[0.2em]">Kho Vật Tư Đội Thông Tin</p>
         </div>
-
-        <div class="space-y-4">
-            <input id="username" type="text" placeholder="Tài khoản"
-                class="w-full px-5 py-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 outline-none">
-
-            <input id="password" type="password" placeholder="Mật khẩu"
-                class="w-full px-5 py-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 outline-none">
-
-            <button onclick="login()"
-                class="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition">
+        <div class="space-y-5">
+            <div class="relative">
+                <input type="text" id="user" class="w-full pl-5 pr-4 py-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 dark:text-white outline-none focus:ring-4 focus:ring-brand-500/10 focus:border-brand-500 transition-all font-medium" placeholder="Tài khoản">
+            </div>
+            <div class="relative">
+                <input type="password" id="pass" class="w-full pl-5 pr-4 py-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 dark:text-white outline-none focus:ring-4 focus:ring-brand-500/10 focus:border-brand-500 transition-all font-medium" placeholder="Mật khẩu">
+            </div>
+            <button onclick="checkLogin()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-4.5 rounded-2xl shadow-lg shadow-brand-600/30 transition-all transform active:scale-[0.98] text-lg mt-4">
                 ĐĂNG NHẬP
             </button>
-
-            <div class="text-xs text-center text-slate-400">
-                Admin: admin/admin<br>
-                Guest: guest/123456
-            </div>
+            <p class="text-center text-[11px] text-slate-400 dark:text-slate-600 pt-4 font-medium italic">Vui lòng sử dụng tài khoản được cấp bởi Quản trị viên</p>
         </div>
-
     </div>
 </div>
 
-<!-- APP -->
-<div id="app" class="hidden max-w-7xl mx-auto p-5">
-
-    <!-- HEADER -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-
+<!-- Main Application -->
+<div id="mainApp" class="hidden opacity-0 flex-1 flex flex-col w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 transition-opacity duration-700">
+    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div>
-            <h1 class="text-3xl font-black">
-                CNS/ATM INVENTORY
+            <h1 class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
+                <svg class="w-8 h-8 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                Vật Tư CNS/ATM
             </h1>
-
-            <p class="text-slate-500 text-sm mt-1">
-                Hệ thống quản lý vật tư kỹ thuật
-            </p>
+            <p class="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">Quản lý kho nội bộ Đội Thông Tin</p>
         </div>
-
-        <div class="flex gap-2">
-
-            <button onclick="toggleDarkMode()"
-                class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-800">
-                🌙
-            </button>
-
-            <button onclick="logout()"
-                class="px-4 py-2 rounded-xl bg-rose-600 text-white">
-                Đăng xuất
-            </button>
-
-        </div>
-
-    </div>
-
-    <!-- DASHBOARD -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-
-        <div class="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800">
-            <div class="text-sm text-slate-500">Tổng thiết bị</div>
-            <div id="dashDevices" class="text-3xl font-black mt-2">0</div>
-        </div>
-
-        <div class="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800">
-            <div class="text-sm text-slate-500">Tổng số lượng</div>
-            <div id="dashQty" class="text-3xl font-black mt-2">0</div>
-        </div>
-
-        <div class="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800">
-            <div class="text-sm text-slate-500">Tổng kho</div>
-            <div id="dashWarehouse" class="text-3xl font-black mt-2">0</div>
-        </div>
-
-        <div class="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800">
-            <div class="text-sm text-slate-500">Sắp hết</div>
-            <div id="dashLow" class="text-3xl font-black mt-2 text-rose-600">0</div>
-        </div>
-
-    </div>
-
-    <!-- ADMIN -->
-    <div id="adminPanel"
-        class="hidden bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-6">
-
-        <div class="flex items-center gap-2 mb-5">
-            <span class="text-xl">🛠️</span>
-            <h2 class="font-black">
-                QUẢN LÝ THIẾT BỊ
-            </h2>
-        </div>
-
-        <input type="hidden" id="editIndex" value="-1">
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-
-            <input id="name" type="text" placeholder="Tên thiết bị" class="inputStyle">
-            <input id="pn" type="text" placeholder="Part Number" class="inputStyle">
-            <input id="sn" type="text" placeholder="Serial Number" class="inputStyle">
-            <input id="warehouse" type="text" placeholder="Mã Kho" class="inputStyle uppercase">
-            <input id="location" type="text" placeholder="Vị trí" class="inputStyle">
-            <input id="qty" type="number" min="0" value="1" class="inputStyle">
-
-        </div>
-
-        <div class="flex flex-wrap gap-3 mt-5">
-
-            <button onclick="addItem()"
-                id="btnAdd"
-                class="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold">
-                ➕ THÊM
-            </button>
-
-            <button onclick="updateItem()"
-                id="btnUpdate"
-                class="hidden px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold">
-                ✅ CẬP NHẬT
-            </button>
-
-            <button onclick="clearForm()"
-                class="px-5 py-3 rounded-xl bg-slate-200 dark:bg-slate-800 font-bold">
-                ♻️ LÀM MỚI
-            </button>
-
-        </div>
-
-    </div>
-
-    <!-- TOOLBAR -->
-    <div class="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm mb-6">
-
-        <div class="flex flex-col lg:flex-row gap-4 justify-between">
-
-            <input type="text"
-                id="search"
-                oninput="renderTable()"
-                placeholder="Tìm kiếm thiết bị..."
-                class="inputStyle lg:max-w-md">
-
-            <div class="flex flex-wrap gap-2">
-
-                <button onclick="syncCloud()"
-                    class="toolbarBtn bg-blue-600 text-white">
-                    ☁️ CLOUD
-                </button>
-
-                <button onclick="exportExcel()"
-                    class="toolbarBtn bg-emerald-600 text-white">
-                    📊 EXCEL
-                </button>
-
-                <button onclick="exportInventoryReport()"
-                    class="toolbarBtn bg-indigo-600 text-white">
-                    📦 BÁO CÁO
-                </button>
-
-                <button onclick="backupData()"
-                    class="toolbarBtn bg-amber-600 text-white">
-                    💾 BACKUP
-                </button>
-
-                <label class="toolbarBtn bg-slate-200 dark:bg-slate-800 cursor-pointer">
-                    📂 IMPORT
-                    <input type="file" hidden onchange="importBackup(event)">
-                </label>
-
-                <button onclick="printQR()"
-                    class="toolbarBtn bg-slate-200 dark:bg-slate-800">
-                    🏷️ QR
-                </button>
-
-                <button onclick="printLabels()"
-                    class="toolbarBtn bg-slate-200 dark:bg-slate-800">
-                    🖨️ NHÃN
-                </button>
-
+        <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+            <div id="syncStatusWrapper" class="hidden items-center px-4 py-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm text-xs font-bold uppercase tracking-wider transition-all duration-300">
+                <span id="syncIcon" class="mr-2">⚪</span> 
+                <div class="flex flex-col">
+                    <span id="syncText" class="text-slate-600 dark:text-slate-300 leading-none">Sẵn sàng</span>
+                    <span id="syncTime" class="text-[9px] text-slate-400 mt-1 lowercase font-normal"></span>
+                </div>
             </div>
-
+            <button onclick="toggleDarkMode()" class="p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" aria-label="Toggle Dark Mode">
+                <svg class="w-5 h-5 text-slate-600 dark:text-slate-300 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                <svg class="w-5 h-5 text-slate-600 dark:text-slate-300 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+            </button>
+            <button onclick="handleLogout()" class="p-2.5 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-800/50 rounded-2xl shadow-sm hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors group" title="Đăng xuất">
+                <svg class="w-5 h-5 text-rose-600 dark:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                </svg>
+            </button>
         </div>
+    </header>
 
+    <!-- Admin Data Entry Area -->
+    <div id="adminArea" class="hidden bg-white dark:bg-slate-900 rounded-[2rem] shadow-sm border border-slate-200 dark:border-slate-800 p-6 mb-6">
+        <div class="flex items-center gap-2 mb-4">
+            <svg class="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+            <h2 class="text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200">Khu vực quản trị</h2>
+        </div>
+        <input type="hidden" id="editIndex" value="-1">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+            <div class="lg:col-span-2">
+                <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 uppercase ml-1">Tên thiết bị *</label>
+                <input type="text" id="inName" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 bg-slate-50 dark:bg-slate-800/50 dark:text-white outline-none transition-all placeholder:text-slate-400" placeholder="Nhập tên vật tư...">
+            </div>
+            <div>
+                <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 uppercase ml-1">P/N</label>
+                <input type="text" id="inPN" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 bg-slate-50 dark:bg-slate-800/50 dark:text-white outline-none transition-all placeholder:text-slate-400" placeholder="Part Number">
+            </div>
+            <div>
+                <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 uppercase ml-1">S/N *</label>
+                <input type="text" id="inSN" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 bg-slate-50 dark:bg-slate-800/50 dark:text-white outline-none transition-all font-mono placeholder:text-slate-400" placeholder="Serial Number">
+            </div>
+            <div>
+                <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 uppercase ml-1">Mã Kho (QR)</label>
+                <input type="text" id="inWarehouse" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 bg-slate-50 dark:bg-slate-800/50 dark:text-white outline-none transition-all uppercase placeholder:text-slate-400" placeholder="VD: KHO-01">
+            </div>
+            <div>
+                <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 uppercase ml-1">Vị trí / Tủ</label>
+                <input type="text" id="inLoc" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 bg-slate-50 dark:bg-slate-800/50 dark:text-white outline-none transition-all placeholder:text-slate-400" placeholder="Tủ 1, Ngăn 2">
+            </div>
+            <div>
+                <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 uppercase ml-1">Số lượng</label>
+                <input type="number" id="inQty" value="1" min="1" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 bg-slate-50 dark:bg-slate-800/50 dark:text-white outline-none transition-all">
+            </div>
+        </div>
+        <div class="mt-5 flex flex-wrap gap-3">
+            <button id="btnAdd" onclick="addItem()" class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-6 py-2.5 rounded-xl shadow-md shadow-brand-500/20 transition-all flex items-center gap-2 text-sm"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> THÊM MỚI</button>
+            <button id="btnUpdate" onclick="updateItem()" class="hidden bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-6 py-2.5 rounded-xl shadow-md shadow-emerald-500/20 transition-all flex items-center gap-2 text-sm"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> CẬP NHẬT</button>
+            <button onclick="clearForm()" class="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold px-6 py-2.5 rounded-xl transition-all text-sm">LÀM MỚI</button>
+        </div>
     </div>
 
-    <!-- TABLE -->
-    <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+    <!-- Action Toolbar -->
+    <div class="bg-white dark:bg-slate-900 rounded-[2rem] shadow-sm border border-slate-200 dark:border-slate-800 p-4 mb-6 flex flex-col md:flex-row gap-4 justify-between items-center">
+        <div class="relative w-full md:w-96">
+            <svg class="w-5 h-5 text-slate-400 absolute left-4 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <input type="text" id="searchInput" oninput="render()" class="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 bg-slate-50 dark:bg-slate-800/50 dark:text-white outline-none transition-all text-sm placeholder:text-slate-400" placeholder="Tìm kiếm tên, P/N, S/N, Mã Kho...">
+        </div>
+        
+        <div class="flex flex-wrap gap-2 w-full md:w-auto justify-end">
+            <button onclick="syncCloud()" class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold py-2.5 px-4 rounded-xl transition-colors" title="Đồng bộ Cloud">
+                <svg class="w-4 h-4 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> <span class="hidden sm:inline">SYNC</span>
+            </button>
+            <button onclick="openAdvAuditModal()" class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold py-2.5 px-4 rounded-xl shadow-sm transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg> QUÉT MÃ
+            </button>
+            <div class="h-8 w-px bg-slate-200 dark:bg-slate-700 hidden md:block mx-1 self-center"></div>
+            <button onclick="exportAuditProfessionalReport()" class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white text-xs font-bold py-2.5 px-4 rounded-xl transition-colors">
+                📄 PHIẾU
+            </button>
+            <button onclick="exportToExcel()" class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-4 rounded-xl transition-colors">
+                📊 EXCEL
+            </button>
+            <button onclick="printQRCodeOnly()" class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-bold py-2.5 px-4 rounded-xl transition-colors">
+                🏷️ IN QR
+            </button>
+            <button onclick="printLabelsOnly()" class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-bold py-2.5 px-4 rounded-xl transition-colors">
+                🏷️ NHÃN
+            </button>
+        </div>
+    </div>
 
-        <div class="overflow-auto custom-scrollbar">
-
-            <table class="w-full min-w-[1200px] text-sm">
-
-                <thead class="bg-slate-100 dark:bg-slate-800">
-                    <tr class="text-left uppercase text-xs">
-
-                        <th class="p-4">STT</th>
-                        <th class="p-4">Tên thiết bị</th>
-                        <th class="p-4">P/N</th>
-                        <th class="p-4">S/N</th>
-                        <th class="p-4">Mã Kho</th>
-                        <th class="p-4">Vị trí</th>
-                        <th class="p-4">SL</th>
-                        <th class="p-4">Tồn kho</th>
-                        <th class="p-4 text-center">QR</th>
-                        <th class="p-4 text-center">Thao tác</th>
-
+    <!-- Data Table -->
+    <div class="bg-white dark:bg-slate-900 rounded-[2rem] shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex-1 flex flex-col">
+        <div class="table-container custom-scrollbar flex-1">
+            <table class="w-full text-sm text-left whitespace-nowrap min-w-[800px]">
+                <thead class="bg-slate-50 dark:bg-slate-800/80 sticky top-0 z-10 border-b border-slate-200 dark:border-slate-700">
+                    <tr class="text-[11px] uppercase text-slate-500 dark:text-slate-400 font-black tracking-wider">
+                        <th class="px-6 py-4 text-center w-16">STT</th>
+                        <th class="px-6 py-4">Thiết bị / Vật tư</th>
+                        <th class="px-6 py-4">S/N</th>
+                        <th class="px-6 py-4 text-center">Mã Kho</th>
+                        <th class="px-6 py-4 text-center w-20">SL</th>
+                        <th class="px-6 py-4 text-center">Kiểm kê</th>
+                        <th class="px-6 py-4 text-center w-24 sticky right-0 bg-slate-50 dark:bg-slate-800/80">Thao tác</th>
                     </tr>
                 </thead>
-
-                <tbody id="tableBody"></tbody>
-
+                <tbody id="inventoryBody" class="divide-y divide-slate-100 dark:divide-slate-800/50">
+                    <!-- Rows rendered here -->
+                </tbody>
             </table>
-
         </div>
-
-        <div class="p-4 border-t border-slate-200 dark:border-slate-800 text-sm text-slate-500">
-            <span id="totalText"></span>
+        <div id="tableFooter" class="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-xs font-semibold text-slate-500 dark:text-slate-400 flex justify-between items-center">
+            <span id="totalItemsDisplay">Đang tải dữ liệu...</span>
+            <span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Trực tuyến</span>
         </div>
-
     </div>
-
 </div>
 
-<div id="printArea"></div>
+<!-- Advanced Audit Modal -->
+<div id="advAuditModal" class="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm hidden items-center justify-center z-[10000] p-4 opacity-0 transition-opacity duration-300">
+    <div class="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-800 transform scale-95 transition-transform duration-300">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <svg class="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                Kiểm kê thiết bị
+            </h3>
+            <button onclick="closeAdvAuditModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+        </div>
+        
+        <div class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 uppercase">Mã quét (QR / Barcode)</label>
+                <input type="text" id="audInput" class="w-full px-4 py-3.5 rounded-xl border-2 border-indigo-100 dark:border-slate-700 focus:border-indigo-500 focus:ring-0 bg-indigo-50/30 dark:bg-slate-800 dark:text-white outline-none transition-all placeholder:text-slate-400 text-center font-mono text-lg" placeholder="Quét hoặc nhập mã...">
+            </div>
+            
+            <div class="flex gap-4 p-1.5 bg-slate-100 dark:bg-slate-800 rounded-xl">
+                <label class="flex-1 relative cursor-pointer">
+                    <input type="radio" name="audStatus" value="OK" checked class="peer sr-only">
+                    <div class="text-center py-2.5 rounded-lg text-sm font-bold text-slate-500 dark:text-slate-400 peer-checked:bg-white dark:peer-checked:bg-slate-700 peer-checked:text-emerald-600 dark:peer-checked:text-emerald-400 peer-checked:shadow-sm transition-all flex justify-center items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> ĐỦ / TỐT
+                    </div>
+                </label>
+                <label class="flex-1 relative cursor-pointer">
+                    <input type="radio" name="audStatus" value="MISSING" class="peer sr-only">
+                    <div class="text-center py-2.5 rounded-lg text-sm font-bold text-slate-500 dark:text-slate-400 peer-checked:bg-white dark:peer-checked:bg-slate-700 peer-checked:text-rose-600 dark:peer-checked:text-rose-400 peer-checked:shadow-sm transition-all flex justify-center items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg> THIẾU / HỎNG
+                    </div>
+                </label>
+            </div>
 
-<style>
-.inputStyle{
-    width:100%;
-    padding:14px 16px;
-    border-radius:16px;
-    border:1px solid #cbd5e1;
-    background:#f8fafc;
-    outline:none;
-}
-.dark .inputStyle{
-    background:#0f172a;
-    border-color:#334155;
-    color:white;
-}
-.toolbarBtn{
-    padding:12px 18px;
-    border-radius:14px;
-    font-weight:700;
-}
-</style>
+            <div>
+                <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 uppercase">Ghi chú (Tùy chọn)</label>
+                <textarea id="audNote" rows="2" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 bg-slate-50 dark:bg-slate-800 dark:text-white outline-none transition-all placeholder:text-slate-400 resize-none text-sm" placeholder="Nhập tình trạng chi tiết..."></textarea>
+            </div>
+        </div>
+
+        <div class="mt-6 flex gap-3">
+            <button onclick="processAdvancedAudit()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-indigo-500/30 transition-all">GHI NHẬN</button>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div id="confirmModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-[100000] p-4 opacity-0 transition-opacity duration-300">
+    <div class="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-2xl w-full max-w-sm border border-slate-200 dark:border-slate-800 transform scale-95 transition-transform duration-300 text-center">
+        <div class="w-16 h-16 bg-rose-100 dark:bg-rose-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-rose-600 dark:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+        </div>
+        <h3 class="text-xl font-black text-slate-900 dark:text-white mb-2">Xác nhận xóa?</h3>
+        <p id="confirmMsg" class="text-slate-500 dark:text-slate-400 text-sm mb-6"></p>
+        <div class="flex gap-3">
+            <button onclick="closeConfirm(true)" class="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 rounded-xl transition-all">Xóa ngay</button>
+            <button onclick="closeConfirm(false)" class="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold py-3 rounded-xl transition-all">Hủy</button>
+        </div>
+    </div>
+</div>
+
+<div id="printQRArea" class="hidden"></div>
+<div id="printLabelArea" class="hidden"></div>
 
 <script>
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycby3ecczSKLGb81GXQSqirqM0s-qQH-jQDjJpZQohnNS_aUQgtH15KzvB8JYr7LJbYql/exec";
+    const STORAGE_KEY = 'cns_inventory_v30_stable';
+    const SESSION_KEY = 'cns_session_active';
+    
+    let inventory = [];
+    let role = null;
+    let confirmCallback = null;
+    let isSyncing = false;
 
-const STORAGE_KEY = "cns_inventory_full_v2";
-const SESSION_KEY = "cns_session";
-
-const WEB_APP_URL = "YOUR_GOOGLE_APPS_SCRIPT_URL";
-
-let inventory = [];
-let role = null;
-
-function showToast(message,type="info"){
-
-    const container = document.getElementById("toastContainer");
-
-    const div = document.createElement("div");
-
-    let bg = "bg-slate-800";
-
-    if(type==="success") bg = "bg-emerald-600";
-    if(type==="error") bg = "bg-rose-600";
-
-    div.className = `${bg} text-white px-5 py-3 rounded-2xl shadow-xl font-bold`;
-
-    div.innerHTML = message;
-
-    container.appendChild(div);
-
-    setTimeout(()=>{
-        div.remove();
-    },3000);
-}
-
-function login(){
-
-    const u = document.getElementById("username").value.trim().toLowerCase();
-    const p = document.getElementById("password").value;
-
-    if((u==="admin" && p==="admin") || (u==="guest" && p==="123456")){
-
-        role = u;
-
-        localStorage.setItem(SESSION_KEY,role);
-
-        document.getElementById("loginPage").classList.add("hidden");
-        document.getElementById("app").classList.remove("hidden");
-
-        if(role==="admin"){
-            document.getElementById("adminPanel").classList.remove("hidden");
+    function checkLogin() {
+        const u = document.getElementById('user').value.toLowerCase().trim();
+        const p = document.getElementById('pass').value;
+        
+        if ((u === 'admin' && p === 'admin') || (u === 'guest' && p === '123456')) {
+            role = u;
+            localStorage.setItem(SESSION_KEY, role);
+            initAppView();
+            showToast(`Chào mừng ${u.toUpperCase()}!`, "success");
+        } else {
+            showToast("Sai tài khoản hoặc mật khẩu!", "error");
         }
-
-        renderTable();
-
-        showToast("Đăng nhập thành công","success");
-
-    }else{
-        showToast("Sai tài khoản hoặc mật khẩu","error");
-    }
-}
-
-function logout(){
-    localStorage.removeItem(SESSION_KEY);
-    location.reload();
-}
-
-function saveData(){
-
-    localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(inventory)
-    );
-
-    renderTable();
-}
-
-function addItem(){
-
-    const name = document.getElementById("name").value.trim();
-    const sn = document.getElementById("sn").value.trim();
-
-    if(!name || !sn){
-        showToast("Nhập tên và Serial Number","error");
-        return;
     }
 
-    inventory.push({
-        name:name,
-        pn:document.getElementById("pn").value.trim(),
-        sn:sn,
-        warehouse:document.getElementById("warehouse").value.trim().toUpperCase(),
-        location:document.getElementById("location").value.trim(),
-        qty:parseInt(document.getElementById("qty").value)||0
-    });
+    function initAppView() {
+        if (!role) return;
 
-    saveData();
-
-    clearForm();
-
-    showToast("Đã thêm thiết bị","success");
-}
-
-function editItem(index){
-
-    if(role!=="admin"){
-        showToast("Chỉ admin được chỉnh sửa","error");
-        return;
+        const login = document.getElementById('loginOverlay');
+        const app = document.getElementById('mainApp');
+        
+        login.classList.add('hidden');
+        app.classList.remove('hidden');
+        setTimeout(() => app.classList.add('opacity-100'), 50);
+        
+        if(role === 'admin') {
+            document.getElementById('adminArea').classList.remove('hidden');
+        }
+        initCloudSync();
     }
 
-    const item = inventory[index];
+    async function initCloudSync() {
+        if (isSyncing) return;
+        updateSyncStatus('syncing');
+        
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-    document.getElementById("editIndex").value = index;
+            const res = await fetch(`${WEB_APP_URL}?t=${Date.now()}`, { signal: controller.signal });
+            clearTimeout(timeoutId);
 
-    document.getElementById("name").value = item.name;
-    document.getElementById("pn").value = item.pn;
-    document.getElementById("sn").value = item.sn;
-    document.getElementById("warehouse").value = item.warehouse;
-    document.getElementById("location").value = item.location;
-    document.getElementById("qty").value = item.qty;
-
-    document.getElementById("btnAdd").classList.add("hidden");
-    document.getElementById("btnUpdate").classList.remove("hidden");
-
-    window.scrollTo({
-        top:0,
-        behavior:"smooth"
-    });
-}
-
-function updateItem(){
-
-    const index = document.getElementById("editIndex").value;
-
-    if(index === "-1") return;
-
-    inventory[index] = {
-        name:document.getElementById("name").value.trim(),
-        pn:document.getElementById("pn").value.trim(),
-        sn:document.getElementById("sn").value.trim(),
-        warehouse:document.getElementById("warehouse").value.trim().toUpperCase(),
-        location:document.getElementById("location").value.trim(),
-        qty:parseInt(document.getElementById("qty").value)||0
-    };
-
-    saveData();
-
-    clearForm();
-
-    showToast("Cập nhật thành công","success");
-}
-
-function deleteItem(index){
-
-    if(!confirm("Xóa thiết bị này?")) return;
-
-    inventory.splice(index,1);
-
-    saveData();
-
-    showToast("Đã xóa","success");
-}
-
-function clearForm(){
-
-    document.getElementById("editIndex").value = "-1";
-
-    document.getElementById("name").value = "";
-    document.getElementById("pn").value = "";
-    document.getElementById("sn").value = "";
-    document.getElementById("warehouse").value = "";
-    document.getElementById("location").value = "";
-    document.getElementById("qty").value = 1;
-
-    document.getElementById("btnAdd").classList.remove("hidden");
-    document.getElementById("btnUpdate").classList.add("hidden");
-}
-
-function getStockStatus(qty){
-
-    if(qty === 0){
-        return `
-            <span class="px-2 py-1 rounded bg-rose-100 text-rose-700 text-xs font-bold">
-                HẾT HÀNG
-            </span>
-        `;
-    }
-
-    if(qty <= 2){
-        return `
-            <span class="px-2 py-1 rounded bg-amber-100 text-amber-700 text-xs font-bold">
-                SẮP HẾT
-            </span>
-        `;
-    }
-
-    return `
-        <span class="px-2 py-1 rounded bg-emerald-100 text-emerald-700 text-xs font-bold">
-            CÒN HÀNG
-        </span>
-    `;
-}
-
-function renderTable(){
-
-    const tbody = document.getElementById("tableBody");
-
-    tbody.innerHTML = "";
-
-    const q = document.getElementById("search").value.toLowerCase();
-
-    let totalQty = 0;
-    let count = 0;
-    let lowStock = 0;
-
-    const warehouseSet = new Set();
-
-    inventory.forEach((item,index)=>{
-
-        const searchable = `
-            ${item.name}
-            ${item.pn}
-            ${item.sn}
-            ${item.warehouse}
-            ${item.location}
-        `.toLowerCase();
-
-        if(searchable.includes(q)){
-
-            count++;
-            totalQty += item.qty;
-
-            warehouseSet.add(item.warehouse);
-
-            if(item.qty <= 2){
-                lowStock++;
+            if (!res.ok) throw new Error("Server response error");
+            
+            const text = await res.text();
+            
+            // SECURITY CHECK: Ensure response is not an HTML error page
+            if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+                throw new Error("Dữ liệu nhận về là HTML, không phải JSON. Kiểm tra phân quyền Apps Script.");
             }
 
-            const tr = document.createElement("tr");
-
-            tr.className = "border-t border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50";
-
-            tr.innerHTML = `
-                <td class="p-4">${count}</td>
-
-                <td class="p-4 font-bold">${item.name}</td>
-
-                <td class="p-4">${item.pn || '-'}</td>
-
-                <td class="p-4 font-mono">${item.sn}</td>
-
-                <td class="p-4">
-                    <span class="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-bold">
-                        ${item.warehouse || '-'}
-                    </span>
-                </td>
-
-                <td class="p-4">${item.location || '-'}</td>
-
-                <td class="p-4 font-bold">${item.qty}</td>
-
-                <td class="p-4">
-                    ${getStockStatus(item.qty)}
-                </td>
-
-                <td class="p-4 text-center">
-                    <button onclick="showQR('${item.warehouse || item.sn}')"
-                        class="px-3 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-bold">
-                        QR
-                    </button>
-                </td>
-
-                <td class="p-4 text-center">
-
-                    <div class="flex justify-center gap-2">
-
-                        <button onclick="editItem(${index})"
-                            class="px-3 py-1 rounded bg-blue-600 text-white text-xs font-bold">
-                            Sửa
-                        </button>
-
-                        ${
-                            role==="admin"
-                            ?
-                            `
-                            <button onclick="deleteItem(${index})"
-                                class="px-3 py-1 rounded bg-rose-600 text-white text-xs font-bold">
-                                Xóa
-                            </button>
-                            `
-                            :
-                            ''
-                        }
-
-                    </div>
-
-                </td>
-            `;
-
-            tbody.appendChild(tr);
-        }
-
-    });
-
-    document.getElementById("totalText").innerHTML =
-        `Tổng thiết bị: <b>${count}</b> | Tổng số lượng: <b>${totalQty}</b>`;
-
-    document.getElementById("dashDevices").innerText = count;
-    document.getElementById("dashQty").innerText = totalQty;
-    document.getElementById("dashWarehouse").innerText = warehouseSet.size;
-    document.getElementById("dashLow").innerText = lowStock;
-}
-
-function showQR(text){
-
-    const win = window.open("","_blank");
-
-    win.document.write(`
-        <html>
-        <head>
-            <title>QR Code</title>
-            <style>
-                body{
-                    display:flex;
-                    justify-content:center;
-                    align-items:center;
-                    flex-direction:column;
-                    height:100vh;
-                    font-family:sans-serif;
+            const data = JSON.parse(text);
+            
+            if (data && Array.isArray(data)) {
+                if (data.length > 0) {
+                    inventory = data;
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(inventory));
+                    const now = new Date();
+                    updateSyncStatus('success', now.getHours() + ":" + String(now.getMinutes()).padStart(2, '0'));
+                } else {
+                    updateSyncStatus('success', 'Cloud rỗng');
                 }
-            </style>
-        </head>
-        <body>
-            <div id="qr"></div>
-            <h2>${text}</h2>
-
-            <script src="https://cdn.jsdelivr.net/npm/kjua@0.9.0/dist/kjua.min.js"><\/script>
-
-            <script>
-                kjua({
-                    render:'canvas',
-                    text:'${text}',
-                    size:300,
-                    container:document.getElementById('qr')
-                });
-            <\/script>
-        </body>
-        </html>
-    `);
-
-    win.document.close();
-}
-
-function exportExcel(){
-
-    const ws = XLSX.utils.json_to_sheet(inventory);
-
-    const wb = XLSX.utils.book_new();
-
-    XLSX.utils.book_append_sheet(wb,ws,"Inventory");
-
-    XLSX.writeFile(
-        wb,
-        "CNS_ATM_INVENTORY.xlsx"
-    );
-
-    showToast("Xuất Excel thành công","success");
-}
-
-function exportInventoryReport(){
-
-    const report = inventory.map((item,index)=>{
-
-        let status = "CÒN HÀNG";
-
-        if(item.qty === 0){
-            status = "HẾT HÀNG";
-        }else if(item.qty <= 2){
-            status = "SẮP HẾT";
+            }
+        } catch (e) {
+            console.error('Sync failed:', e.message);
+            updateSyncStatus('error');
         }
+        render();
+    }
 
-        return {
-            STT:index + 1,
-            "Tên thiết bị":item.name,
-            "Part Number":item.pn,
-            "Serial Number":item.sn,
-            "Mã Kho":item.warehouse,
-            "Vị trí":item.location,
-            "Số lượng":item.qty,
-            "Tình trạng":status,
-            "Ngày xuất":new Date().toLocaleString("vi-VN")
-        };
-    });
+    async function syncCloud() {
+        if (isSyncing) return;
+        updateSyncStatus('syncing');
+        
+        try {
+            const params = new URLSearchParams();
+            params.append('data', JSON.stringify(inventory));
+            params.append('timestamp', Date.now());
+            params.append('user', role || 'unknown');
 
-    const ws = XLSX.utils.json_to_sheet(report);
+            // Using no-cors mode for Google Apps Script deployment
+            await fetch(WEB_APP_URL, { 
+                method: "POST", 
+                mode: "no-cors",
+                cache: "no-cache",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: params 
+            });
 
-    ws['!cols'] = [
-        {wch:6},
-        {wch:30},
-        {wch:20},
-        {wch:20},
-        {wch:15},
-        {wch:20},
-        {wch:10},
-        {wch:15},
-        {wch:25}
-    ];
+            const now = new Date();
+            const timeStr = now.getHours() + ":" + String(now.getMinutes()).padStart(2, '0');
+            updateSyncStatus('success', timeStr);
+            showToast("Đã lưu dữ liệu lên Cloud!", "success");
+        } catch (e) {
+            console.error("Lỗi đồng bộ:", e);
+            updateSyncStatus('error');
+            showToast("Lỗi đồng bộ Cloud!", "error");
+        }
+    }
 
-    const wb = XLSX.utils.book_new();
+    function updateSyncStatus(status, time = null) {
+        const wrapper = document.getElementById('syncStatusWrapper');
+        const icon = document.getElementById('syncIcon');
+        const text = document.getElementById('syncText');
+        const timeLabel = document.getElementById('syncTime');
+        
+        wrapper.classList.remove('hidden', 'opacity-60');
+        wrapper.classList.add('flex');
 
-    XLSX.utils.book_append_sheet(
-        wb,
-        ws,
-        "BaoCaoTonKho"
-    );
+        if (status === 'syncing') {
+            isSyncing = true;
+            icon.innerHTML = `<span class="animate-pulse text-brand-500">●</span>`;
+            text.innerText = "Đang kết nối...";
+        } else if (status === 'success') {
+            isSyncing = false;
+            icon.innerHTML = `<span class="text-emerald-500">●</span>`;
+            text.innerText = "Đã đồng bộ";
+            if (time) timeLabel.innerText = `Lần cuối: ${time}`;
+            setTimeout(() => { if(!isSyncing) wrapper.classList.add('opacity-60'); }, 5000);
+        } else if (status === 'error') {
+            isSyncing = false;
+            icon.innerHTML = `<span class="text-rose-500">●</span>`;
+            text.innerText = "Lỗi Cloud";
+            timeLabel.innerText = "Kiểm tra quyền truy cập";
+        }
+    }
 
-    XLSX.writeFile(
-        wb,
-        `BAO_CAO_TON_KHO_${Date.now()}.xlsx`
-    );
+    function render() {
+        const tbody = document.getElementById('inventoryBody');
+        const footerText = document.getElementById('totalItemsDisplay');
+        if (!tbody) return;
+        
+        const q = document.getElementById('searchInput').value.trim().toLowerCase();
+        tbody.innerHTML = '';
+        let count = 0;
+        let totalQty = 0;
 
-    showToast("Xuất báo cáo tồn kho thành công","success");
-}
+        inventory.forEach((item, idx) => {
+            const searchable = `${item.name} ${item.sn} ${item.pn} ${item.warehouse}`.toLowerCase();
+            if (searchable.includes(q)) {
+                count++;
+                totalQty += (item.qty || 0);
+                
+                let badge = '<span class="text-slate-400 text-xs">--</span>';
+                if (item.auditStatus === 'OK') {
+                    badge = `<span class="inline-flex items-center gap-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 px-2 py-1 rounded-md text-[10px] font-bold border border-emerald-100 dark:border-emerald-800/50">ĐỦ</span>`;
+                } else if (item.auditStatus === 'MISSING') {
+                    badge = `<span class="inline-flex items-center gap-1 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 px-2 py-1 rounded-md text-[10px] font-bold border border-rose-100 dark:border-rose-800/50">THIẾU</span>`;
+                }
 
-function printQR(){
-
-    const area = document.getElementById("printArea");
-
-    area.innerHTML = "";
-
-    inventory.forEach(item=>{
-
-        const div = document.createElement("div");
-
-        div.style.marginBottom = "30px";
-        div.style.textAlign = "center";
-
-        div.innerHTML = `
-            <div class="qr"></div>
-            <div style="margin-top:10px;font-weight:bold">
-                ${item.warehouse || item.sn}
-            </div>
-        `;
-
-        area.appendChild(div);
-
-        kjua({
-            render:'canvas',
-            text:item.warehouse || item.sn,
-            size:150,
-            container:div.querySelector(".qr")
+                tbody.innerHTML += `
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                    <td class="px-6 py-4 text-center font-bold text-slate-400">${count}</td>
+                    <td class="px-6 py-3">
+                        <div class="font-bold text-slate-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors line-clamp-1">${item.name}</div>
+                        <div class="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
+                            <span>P/N: <span class="font-medium text-slate-700 dark:text-slate-300">${item.pn || 'N/A'}</span></span>
+                            ${item.loc ? `<span class="text-slate-300 dark:text-slate-600">|</span> <span>${item.loc}</span>` : ''}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 font-mono text-xs text-slate-700 dark:text-slate-300">${item.sn}</td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="bg-brand-50 dark:bg-brand-900/20 px-2 py-1 rounded text-brand-700 dark:text-brand-300 font-bold text-[10px] border border-brand-100 dark:border-brand-800/50">${item.warehouse || '--'}</span>
+                    </td>
+                    <td class="px-6 py-4 text-center font-black">${item.qty}</td>
+                    <td class="px-6 py-4 text-center">
+                        <div class="flex flex-col items-center gap-0.5">
+                            ${badge}
+                            ${item.auditDate ? `<span class="text-[9px] text-slate-400">${item.auditDate.split(' ')[0]}</span>` : ''}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-center sticky right-0 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800/50 transition-colors">
+                        <div class="flex gap-2 justify-center">
+                            <button onclick="editItem(${idx})" class="p-1.5 hover:text-brand-500 transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></button>
+                            ${role === 'admin' ? `<button onclick="deleteItem(${idx})" class="p-1.5 hover:text-rose-500 transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>` : ''}
+                        </div>
+                    </td>
+                </tr>`;
+            }
         });
+        
+        footerText.innerHTML = `Hiển thị <b>${count}</b> thiết bị (Tổng SL: <b>${totalQty}</b>)`;
+    }
 
-    });
+    function save() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(inventory));
+        render();
+    }
 
-    setTimeout(()=>{
-        window.print();
-    },500);
-}
+    function addItem() {
+        const name = document.getElementById('inName').value.trim();
+        const sn = document.getElementById('inSN').value.trim();
+        if(!name || !sn) return showToast("Nhập Tên thiết bị và S/N!", "error");
+        
+        inventory.push({
+            name, sn,
+            pn: document.getElementById('inPN').value.trim(),
+            warehouse: document.getElementById('inWarehouse').value.trim().toUpperCase(),
+            qty: parseInt(document.getElementById('inQty').value) || 1,
+            loc: document.getElementById('inLoc').value.trim(),
+            auditStatus: null, auditDate: null, auditNote: ""
+        });
+        save(); clearForm(); showToast("Đã thêm!", "success");
+    }
 
-function printLabels(){
+    function editItem(idx) {
+        if(role !== 'admin') return showToast("Chỉ Admin mới có quyền sửa!", "error");
+        const i = inventory[idx];
+        document.getElementById('editIndex').value = idx;
+        document.getElementById('inName').value = i.name;
+        document.getElementById('inSN').value = i.sn;
+        document.getElementById('inPN').value = i.pn || '';
+        document.getElementById('inWarehouse').value = i.warehouse || '';
+        document.getElementById('inLoc').value = i.loc || '';
+        document.getElementById('inQty').value = i.qty;
+        document.getElementById('btnAdd').classList.add('hidden');
+        document.getElementById('btnUpdate').classList.remove('hidden');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 
-    const area = document.getElementById("printArea");
+    function updateItem() {
+        const idx = document.getElementById('editIndex').value;
+        if (idx === "-1") return;
+        inventory[idx] = { ...inventory[idx],
+            name: document.getElementById('inName').value.trim(),
+            sn: document.getElementById('inSN').value.trim(),
+            pn: document.getElementById('inPN').value.trim(),
+            warehouse: document.getElementById('inWarehouse').value.trim().toUpperCase(),
+            qty: parseInt(document.getElementById('inQty').value) || 1,
+            loc: document.getElementById('inLoc').value.trim()
+        };
+        save(); clearForm(); showToast("Cập nhật thành công!", "success");
+    }
 
-    area.innerHTML = "";
+    function deleteItem(idx) {
+        customConfirm(`Xóa thiết bị: ${inventory[idx].name}?`, () => {
+            inventory.splice(idx, 1);
+            save();
+            showToast("Đã xóa.", "success");
+        });
+    }
 
-    inventory.forEach(item=>{
+    function clearForm() {
+        document.getElementById('editIndex').value = "-1";
+        document.querySelectorAll('#adminArea input').forEach(i => {
+            if(i.type !== 'hidden') i.value = (i.id==='inQty'?'1':'');
+        });
+        document.getElementById('btnAdd').classList.remove('hidden');
+        document.getElementById('btnUpdate').classList.add('hidden');
+    }
 
-        const div = document.createElement("div");
+    function showToast(message, type = 'info') {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        const bg = type === 'success' ? 'bg-emerald-500' : (type === 'error' ? 'bg-rose-500' : 'bg-slate-800');
+        toast.className = `${bg} text-white px-6 py-4 rounded-2xl shadow-xl font-bold flex items-center gap-3 transition-all duration-300 transform translate-y-[-20px] opacity-0`;
+        toast.innerHTML = `<span>${type==='success'?'✅':(type==='error'?'❌':'🔔')}</span> ${message}`;
+        container.appendChild(toast);
+        requestAnimationFrame(() => { toast.classList.remove('translate-y-[-20px]', 'opacity-0'); });
+        setTimeout(() => {
+            toast.classList.add('translate-y-[-20px]', 'opacity-0');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
 
-        div.style.border = "2px solid black";
-        div.style.padding = "15px";
-        div.style.marginBottom = "10px";
+    function customConfirm(msg, callback) {
+        document.getElementById('confirmMsg').innerText = msg;
+        const modal = document.getElementById('confirmModal');
+        modal.classList.replace('hidden', 'flex');
+        setTimeout(() => {
+            modal.classList.add('opacity-100');
+            modal.firstElementChild.classList.remove('scale-95');
+        }, 10);
+        confirmCallback = callback;
+    }
 
-        div.innerHTML = `
-            <h3>${item.name}</h3>
+    function closeConfirm(result) {
+        const modal = document.getElementById('confirmModal');
+        modal.classList.remove('opacity-100');
+        modal.firstElementChild.classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.replace('flex', 'hidden');
+            if (result && confirmCallback) confirmCallback();
+        }, 300);
+    }
 
-            <p><b>P/N:</b> ${item.pn || '-'}</p>
+    function openAdvAuditModal() {
+        const modal = document.getElementById('advAuditModal');
+        modal.classList.replace('hidden', 'flex');
+        setTimeout(() => { modal.classList.add('opacity-100'); modal.firstElementChild.classList.remove('scale-95'); }, 10);
+        document.getElementById('audInput').focus();
+    }
+    
+    function closeAdvAuditModal() {
+        const modal = document.getElementById('advAuditModal');
+        modal.classList.remove('opacity-100');
+        modal.firstElementChild.classList.add('scale-95');
+        setTimeout(() => modal.classList.replace('flex', 'hidden'), 300);
+    }
 
-            <p><b>S/N:</b> ${item.sn}</p>
+    function processAdvancedAudit() {
+        const input = document.getElementById('audInput').value.trim().toUpperCase();
+        if(!input) return;
+        const st = document.querySelector('input[name="audStatus"]:checked').value;
+        const nt = document.getElementById('audNote').value.trim();
+        const dt = new Date().toLocaleString('vi-VN');
+        
+        let found = 0;
+        inventory.forEach(i => {
+            if((i.warehouse && i.warehouse === input) || i.sn === input) {
+                i.auditStatus = st; i.auditDate = dt; i.auditNote = nt; found++;
+            }
+        });
+        
+        if(found > 0) { save(); showToast(`Đã kiểm ${found} mục`); closeAdvAuditModal(); syncCloud(); }
+        else showToast("Không tìm thấy mã!", "error");
+    }
 
-            <p><b>Mã Kho:</b> ${item.warehouse || '-'}</p>
+    function exportToExcel() {
+        if (typeof XLSX === 'undefined') return;
+        const ws = XLSX.utils.json_to_sheet(inventory);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Inventory");
+        XLSX.writeFile(wb, `Inventory_CNS_${new Date().toISOString().slice(0,10)}.xlsx`);
+    }
 
-            <p><b>SL:</b> ${item.qty}</p>
-        `;
+    function exportAuditProfessionalReport() {
+        const win = window.open('','_blank');
+        const date = new Date().toLocaleDateString('vi-VN');
+        const rows = inventory.map((i,x) => `<tr><td>${x+1}</td><td>${i.name}</td><td>${i.pn||'-'}</td><td>${i.sn}</td><td>${i.warehouse||'-'}</td><td>${i.qty}</td><td>${i.auditStatus||'-'}</td></tr>`).join('');
+        
+        win.document.write(`<html><head><title>Biên bản</title><style>table{width:100%;border-collapse:collapse;}th,td{border:1px solid #000;padding:8px;text-align:center;}</style></head><body><h2>BIÊN BẢN KIỂM KÊ - ${date}</h2><table><thead><tr><th>STT</th><th>Tên</th><th>P/N</th><th>S/N</th><th>Mã</th><th>SL</th><th>Tình trạng</th></tr></thead><tbody>${rows}</tbody></table><script>window.onload=()=>window.print();<\/script></body></html>`);
+        win.document.close();
+    }
 
-        area.appendChild(div);
-    });
+    function printQRCodeOnly() {
+        const area = document.getElementById('printQRArea');
+        area.innerHTML = '';
+        inventory.forEach(item => {
+            if(item.warehouse) {
+                const div = document.createElement('div');
+                div.className = 'qr-item';
+                div.innerHTML = `<div class="qr-target"></div><div class="qr-text" style="font-size:8px;font-weight:bold">${item.warehouse}<br>${item.sn}</div>`;
+                area.appendChild(div);
+                kjua({ render: 'canvas', text: item.warehouse, size: 100, container: div.querySelector('.qr-target') });
+            }
+        });
+        setTimeout(() => window.print(), 500);
+    }
 
-    setTimeout(()=>{
-        window.print();
-    },500);
-}
+    function printLabelsOnly() {
+        const area = document.getElementById('printLabelArea');
+        area.innerHTML = '';
+        inventory.forEach(item => {
+            area.innerHTML += `<div class="label-item"><div class="label-name">${item.name}</div><div style="font-size:12px"><b>S/N:</b> ${item.sn}<br><b>Mã:</b> ${item.warehouse || 'N/A'}</div></div>`;
+        });
+        setTimeout(() => window.print(), 500);
+    }
 
-function backupData(){
+    function toggleDarkMode() {
+        const isDark = document.documentElement.classList.toggle('dark');
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    }
 
-    const blob = new Blob(
-        [JSON.stringify(inventory,null,2)],
-        {type:"application/json"}
-    );
+    function handleLogout() {
+        // Xóa session đăng nhập
+        localStorage.removeItem(SESSION_KEY);
+        // Tải lại trang để reset toàn bộ trạng thái về ban đầu
+        location.reload();
+    }
 
-    const a = document.createElement("a");
-
-    a.href = URL.createObjectURL(blob);
-
-    a.download = "CNS_BACKUP.json";
-
-    a.click();
-
-    showToast("Đã backup dữ liệu","success");
-}
-
-function importBackup(event){
-
-    const file = event.target.files[0];
-
-    if(!file) return;
-
-    const reader = new FileReader();
-
-    reader.onload = function(e){
-
-        try{
-
-            inventory = JSON.parse(e.target.result);
-
-            saveData();
-
-            showToast("Khôi phục dữ liệu thành công","success");
-
-        }catch{
-
-            showToast("File backup không hợp lệ","error");
+    window.onload = () => {
+        if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark');
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) inventory = JSON.parse(stored);
+        
+        const savedRole = localStorage.getItem(SESSION_KEY);
+        if (savedRole) {
+            role = savedRole;
+            initAppView();
         }
     };
-
-    reader.readAsText(file);
-}
-
-async function syncCloud(){
-
-    if(WEB_APP_URL === "https://script.google.com/macros/s/AKfycby3ecczSKLGb81GXQSqirqM0s-qQH-jQDjJpZQohnNS_aUQgtH15KzvB8JYr7LJbYql/exec"){
-        showToast("Chưa cấu hình Google Apps Script","error");
-        return;
-    }
-
-    try{
-
-        const params = new URLSearchParams();
-
-        params.append("data",JSON.stringify(inventory));
-
-        await fetch(WEB_APP_URL,{
-            method:"POST",
-            mode:"no-cors",
-            body:params
-        });
-
-        showToast("Đồng bộ Cloud thành công","success");
-
-    }catch(e){
-
-        showToast("Lỗi đồng bộ Cloud","error");
-
-        console.error(e);
-    }
-}
-
-function toggleDarkMode(){
-
-    const html = document.documentElement;
-
-    html.classList.toggle("dark");
-
-    localStorage.setItem(
-        "theme",
-        html.classList.contains("dark")
-        ?
-        "dark"
-        :
-        "light"
-    );
-}
-
-window.onload = ()=>{
-
-    if(localStorage.getItem("theme")==="dark"){
-        document.documentElement.classList.add("dark");
-    }
-
-    const savedData = localStorage.getItem(STORAGE_KEY);
-
-    if(savedData){
-        inventory = JSON.parse(savedData);
-    }
-
-    const savedRole = localStorage.getItem(SESSION_KEY);
-
-    if(savedRole){
-
-        role = savedRole;
-
-        document.getElementById("loginPage").classList.add("hidden");
-        document.getElementById("app").classList.remove("hidden");
-
-        if(role==="admin"){
-            document.getElementById("adminPanel").classList.remove("hidden");
-        }
-
-        renderTable();
-    }
-}
 </script>
-
 </body>
 </html>
