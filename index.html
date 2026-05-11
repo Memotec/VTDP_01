@@ -1,718 +1,752 @@
-<!-- ========================= -->
-<!-- REPLACE ONLY SCRIPT PART -->
-<!-- ========================= -->
+<!DOCTYPE html>
+<html lang="vi" class="antialiased">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CNS/ATM INVENTORY PRO</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/kjua@0.9.0/dist/kjua.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+body{
+    font-family:'Inter',sans-serif;
+}
+.custom-scrollbar::-webkit-scrollbar{
+    width:6px;
+    height:6px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb{
+    background:#94a3b8;
+    border-radius:10px;
+}
+@media print{
+    body *{
+        visibility:hidden;
+    }
+    #printArea,
+    #printArea *{
+        visibility:visible;
+    }
+    #printArea{
+        position:absolute;
+        left:0;
+        top:0;
+        width:100%;
+    }
+}
+</style>
 
 <script>
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycby3ecczSKLGb81GXQSqirqM0s-qQH-jQDjJpZQohnNS_aUQgtH15KzvB8JYr7LJbYql/exec";
+tailwind.config = {
+    darkMode:'class',
+    theme:{
+        extend:{
+            fontFamily:{
+                sans:['Inter','sans-serif']
+            }
+        }
+    }
+}
+</script>
+</head>
 
-const STORAGE_KEY = 'cns_inventory_v30_stable';
-const SESSION_KEY = 'cns_session_active';
+<body class="bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-white">
+
+<div id="toastContainer" class="fixed top-5 right-5 z-50 space-y-2"></div>
+
+<!-- LOGIN -->
+<div id="loginPage" class="fixed inset-0 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm z-40">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl shadow-2xl p-10 border border-slate-200 dark:border-slate-800">
+
+        <div class="text-center mb-8">
+            <div class="w-20 h-20 rounded-3xl bg-blue-600 mx-auto flex items-center justify-center text-white shadow-xl">
+                📦
+            </div>
+
+            <h1 class="text-3xl font-black mt-5">
+                CNS/ATM
+            </h1>
+
+            <p class="text-sm text-slate-500 mt-2">
+                Quản lý vật tư Đội Thông Tin
+            </p>
+        </div>
+
+        <div class="space-y-4">
+            <input id="username" type="text" placeholder="Tài khoản"
+                class="w-full px-5 py-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 outline-none">
+
+            <input id="password" type="password" placeholder="Mật khẩu"
+                class="w-full px-5 py-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 outline-none">
+
+            <button onclick="login()"
+                class="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition">
+                ĐĂNG NHẬP
+            </button>
+
+            <div class="text-xs text-center text-slate-400">
+                Admin: admin/admin<br>
+                Guest: guest/123456
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden max-w-7xl mx-auto p-5">
+
+    <!-- HEADER -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+
+        <div>
+            <h1 class="text-3xl font-black">
+                CNS/ATM INVENTORY
+            </h1>
+
+            <p class="text-slate-500 text-sm mt-1">
+                Hệ thống quản lý vật tư kỹ thuật
+            </p>
+        </div>
+
+        <div class="flex gap-2">
+
+            <button onclick="toggleDarkMode()"
+                class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-800">
+                🌙
+            </button>
+
+            <button onclick="logout()"
+                class="px-4 py-2 rounded-xl bg-rose-600 text-white">
+                Đăng xuất
+            </button>
+
+        </div>
+
+    </div>
+
+    <!-- ADMIN -->
+    <div id="adminPanel"
+        class="hidden bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm mb-6">
+
+        <div class="flex items-center gap-2 mb-5">
+            <span class="text-xl">🛠️</span>
+            <h2 class="font-black">
+                QUẢN LÝ THIẾT BỊ
+            </h2>
+        </div>
+
+        <input type="hidden" id="editIndex" value="-1">
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+            <input id="name" type="text" placeholder="Tên thiết bị"
+                class="inputStyle">
+
+            <input id="pn" type="text" placeholder="Part Number"
+                class="inputStyle">
+
+            <input id="sn" type="text" placeholder="Serial Number"
+                class="inputStyle">
+
+            <input id="warehouse" type="text" placeholder="Mã Kho"
+                class="inputStyle uppercase">
+
+            <input id="location" type="text" placeholder="Vị trí"
+                class="inputStyle">
+
+            <input id="qty" type="number" min="1" value="1"
+                class="inputStyle">
+
+        </div>
+
+        <div class="flex flex-wrap gap-3 mt-5">
+
+            <button onclick="addItem()"
+                id="btnAdd"
+                class="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold">
+                ➕ THÊM
+            </button>
+
+            <button onclick="updateItem()"
+                id="btnUpdate"
+                class="hidden px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold">
+                ✅ CẬP NHẬT
+            </button>
+
+            <button onclick="clearForm()"
+                class="px-5 py-3 rounded-xl bg-slate-200 dark:bg-slate-800 font-bold">
+                ♻️ LÀM MỚI
+            </button>
+
+        </div>
+
+    </div>
+
+    <!-- TOOLBAR -->
+    <div class="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm mb-6">
+
+        <div class="flex flex-col lg:flex-row gap-4 justify-between">
+
+            <input type="text"
+                id="search"
+                oninput="renderTable()"
+                placeholder="Tìm kiếm thiết bị..."
+                class="inputStyle lg:max-w-md">
+
+            <div class="flex flex-wrap gap-2">
+
+                <button onclick="syncCloud()"
+                    class="toolbarBtn bg-blue-600 text-white">
+                    ☁️ CLOUD
+                </button>
+
+                <button onclick="exportExcel()"
+                    class="toolbarBtn bg-emerald-600 text-white">
+                    📊 EXCEL
+                </button>
+
+                <button onclick="printQR()"
+                    class="toolbarBtn bg-slate-200 dark:bg-slate-800">
+                    🏷️ QR
+                </button>
+
+                <button onclick="printLabels()"
+                    class="toolbarBtn bg-slate-200 dark:bg-slate-800">
+                    🖨️ NHÃN
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- TABLE -->
+    <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+
+        <div class="overflow-auto custom-scrollbar">
+
+            <table class="w-full min-w-[1000px] text-sm">
+
+                <thead class="bg-slate-100 dark:bg-slate-800">
+                    <tr class="text-left uppercase text-xs">
+
+                        <th class="p-4">STT</th>
+                        <th class="p-4">Tên thiết bị</th>
+                        <th class="p-4">P/N</th>
+                        <th class="p-4">S/N</th>
+                        <th class="p-4">Mã Kho</th>
+                        <th class="p-4">Vị trí</th>
+                        <th class="p-4">SL</th>
+                        <th class="p-4 text-center">QR</th>
+                        <th class="p-4 text-center">Thao tác</th>
+
+                    </tr>
+                </thead>
+
+                <tbody id="tableBody"></tbody>
+
+            </table>
+
+        </div>
+
+        <div class="p-4 border-t border-slate-200 dark:border-slate-800 text-sm text-slate-500">
+            <span id="totalText"></span>
+        </div>
+
+    </div>
+
+</div>
+
+<div id="printArea"></div>
+
+<style>
+.inputStyle{
+    width:100%;
+    padding:14px 16px;
+    border-radius:16px;
+    border:1px solid #cbd5e1;
+    background:#f8fafc;
+    outline:none;
+}
+.dark .inputStyle{
+    background:#0f172a;
+    border-color:#334155;
+    color:white;
+}
+.toolbarBtn{
+    padding:12px 18px;
+    border-radius:14px;
+    font-weight:700;
+}
+</style>
+
+<script>
+
+const STORAGE_KEY = "cns_inventory_full_v1";
+const SESSION_KEY = "cns_session";
+
+const WEB_APP_URL = "YOUR_GOOGLE_APPS_SCRIPT_URL";
 
 let inventory = [];
 let role = null;
-let confirmCallback = null;
-let isSyncing = false;
 
-/* =========================
-   LOGIN
-========================= */
+function showToast(message,type="info"){
+    const container = document.getElementById("toastContainer");
 
-function checkLogin() {
+    const div = document.createElement("div");
 
-    const u = document.getElementById('user').value
-        .toLowerCase()
-        .trim();
+    let bg = "bg-slate-800";
 
-    const p = document.getElementById('pass').value;
+    if(type==="success") bg = "bg-emerald-600";
+    if(type==="error") bg = "bg-rose-600";
 
-    if (
-        (u === 'admin' && p === 'admin') ||
-        (u === 'guest' && p === '123456')
-    ) {
+    div.className = `${bg} text-white px-5 py-3 rounded-2xl shadow-xl font-bold`;
+
+    div.innerHTML = message;
+
+    container.appendChild(div);
+
+    setTimeout(()=>{
+        div.remove();
+    },3000);
+}
+
+function login(){
+
+    const u = document.getElementById("username").value.trim().toLowerCase();
+    const p = document.getElementById("password").value;
+
+    if((u==="admin" && p==="admin") || (u==="guest" && p==="123456")){
 
         role = u;
 
-        localStorage.setItem(
-            SESSION_KEY,
-            role
-        );
+        localStorage.setItem(SESSION_KEY,role);
 
-        initAppView();
+        document.getElementById("loginPage").classList.add("hidden");
+        document.getElementById("app").classList.remove("hidden");
 
-        showToast(
-            `Chào mừng ${u.toUpperCase()}!`,
-            "success"
-        );
-
-    } else {
-
-        showToast(
-            "Sai tài khoản hoặc mật khẩu!",
-            "error"
-        );
-    }
-}
-
-/* =========================
-   APP INIT
-========================= */
-
-function initAppView() {
-
-    if (!role) return;
-
-    const login = document.getElementById('loginOverlay');
-    const app = document.getElementById('mainApp');
-
-    login.classList.add('hidden');
-
-    app.classList.remove('hidden');
-
-    setTimeout(() => {
-        app.classList.add('opacity-100');
-    }, 50);
-
-    if (role === 'admin') {
-        document.getElementById('adminArea')
-            .classList.remove('hidden');
-    }
-
-    initCloudSync();
-}
-
-/* =========================
-   CLOUD LOAD
-========================= */
-
-async function initCloudSync() {
-
-    if (isSyncing) return;
-
-    updateSyncStatus('syncing');
-
-    try {
-
-        const res = await fetch(
-            `${WEB_APP_URL}?t=${Date.now()}`
-        );
-
-        if (!res.ok) {
-            throw new Error("Không kết nối được Cloud");
+        if(role==="admin"){
+            document.getElementById("adminPanel").classList.remove("hidden");
         }
 
-        const text = await res.text();
+        renderTable();
 
-        if (
-            text.includes("<html") ||
-            text.includes("<!DOCTYPE")
-        ) {
-            throw new Error("Apps Script chưa public");
-        }
+        showToast("Đăng nhập thành công","success");
 
-        const cloudData = JSON.parse(text);
-
-        if (Array.isArray(cloudData)) {
-
-            inventory = cloudData.map(item => ({
-
-                name: item.name || "",
-                pn: item.pn || "",
-                sn: item.sn || "",
-
-                code: item.code || "",
-
-                warehouse: item.warehouse || "",
-
-                qty: parseInt(item.qty) || 0,
-
-                loc: item.loc || "",
-
-                auditStatus: item.auditStatus || "",
-                auditDate: item.auditDate || "",
-                auditNote: item.auditNote || "",
-
-                createdAt: item.createdAt || "",
-                updatedAt: item.updatedAt || ""
-
-            }));
-
-            localStorage.setItem(
-                STORAGE_KEY,
-                JSON.stringify(inventory)
-            );
-        }
-
-        const now = new Date();
-
-        updateSyncStatus(
-            'success',
-            now.getHours() + ":" +
-            String(now.getMinutes()).padStart(2, '0')
-        );
-
-    } catch (e) {
-
-        console.error(e);
-
-        updateSyncStatus('error');
-
-        const local = localStorage.getItem(STORAGE_KEY);
-
-        if (local) {
-            inventory = JSON.parse(local);
-        }
-
-        showToast(
-            "Đang dùng dữ liệu local",
-            "error"
-        );
-    }
-
-    render();
-}
-
-/* =========================
-   CLOUD SAVE
-========================= */
-
-async function syncCloud() {
-
-    if (isSyncing) return;
-
-    updateSyncStatus('syncing');
-
-    try {
-
-        const cleanData = inventory.map(item => ({
-
-            name: item.name || "",
-            pn: item.pn || "",
-            sn: item.sn || "",
-
-            code: item.code || item.warehouse || "",
-
-            warehouse: item.warehouse || "",
-
-            qty: parseInt(item.qty) || 0,
-
-            loc: item.loc || "",
-
-            auditStatus: item.auditStatus || "",
-            auditDate: item.auditDate || "",
-            auditNote: item.auditNote || "",
-
-            createdAt: item.createdAt || "",
-            updatedAt: item.updatedAt || ""
-
-        }));
-
-        const params = new URLSearchParams();
-
-        params.append(
-            'data',
-            JSON.stringify(cleanData)
-        );
-
-        const response = await fetch(
-            WEB_APP_URL,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type":
-                    "application/x-www-form-urlencoded"
-                },
-                body: params
-            }
-        );
-
-        const text = await response.text();
-
-        if (text.includes("Error")) {
-            throw new Error(text);
-        }
-
-        const now = new Date();
-
-        updateSyncStatus(
-            'success',
-            now.getHours() + ":" +
-            String(now.getMinutes()).padStart(2, '0')
-        );
-
-        showToast(
-            "Đồng bộ Cloud thành công!",
-            "success"
-        );
-
-    } catch (e) {
-
-        console.error(e);
-
-        updateSyncStatus('error');
-
-        showToast(
-            "Lỗi đồng bộ Cloud!",
-            "error"
-        );
+    }else{
+        showToast("Sai tài khoản hoặc mật khẩu","error");
     }
 }
 
-/* =========================
-   STATUS
-========================= */
-
-function updateSyncStatus(status, time = null) {
-
-    const wrapper =
-        document.getElementById(
-            'syncStatusWrapper'
-        );
-
-    const icon =
-        document.getElementById(
-            'syncIcon'
-        );
-
-    const text =
-        document.getElementById(
-            'syncText'
-        );
-
-    const timeLabel =
-        document.getElementById(
-            'syncTime'
-        );
-
-    wrapper.classList.remove(
-        'hidden',
-        'opacity-60'
-    );
-
-    wrapper.classList.add('flex');
-
-    if (status === 'syncing') {
-
-        isSyncing = true;
-
-        icon.innerHTML =
-            `<span class="animate-pulse text-brand-500">●</span>`;
-
-        text.innerText =
-            "Đang kết nối...";
-
-    }
-
-    else if (status === 'success') {
-
-        isSyncing = false;
-
-        icon.innerHTML =
-            `<span class="text-emerald-500">●</span>`;
-
-        text.innerText =
-            "Đã đồng bộ";
-
-        if (time) {
-            timeLabel.innerText =
-                `Lần cuối: ${time}`;
-        }
-
-        setTimeout(() => {
-
-            if (!isSyncing) {
-                wrapper.classList.add('opacity-60');
-            }
-
-        }, 5000);
-    }
-
-    else {
-
-        isSyncing = false;
-
-        icon.innerHTML =
-            `<span class="text-rose-500">●</span>`;
-
-        text.innerText =
-            "Lỗi Cloud";
-
-        timeLabel.innerText =
-            "Kiểm tra Apps Script";
-    }
-}
-
-/* =========================
-   SAVE
-========================= */
-
-function save() {
-
-    localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(inventory)
-    );
-
-    render();
-}
-
-/* =========================
-   ADD ITEM
-========================= */
-
-function addItem() {
-
-    const name =
-        document.getElementById('inName')
-        .value
-        .trim();
-
-    const sn =
-        document.getElementById('inSN')
-        .value
-        .trim();
-
-    if (!name || !sn) {
-
-        return showToast(
-            "Nhập Tên thiết bị và S/N!",
-            "error"
-        );
-    }
-
-    const warehouse =
-        document.getElementById(
-            'inWarehouse'
-        )
-        .value
-        .trim()
-        .toUpperCase();
-
-    inventory.push({
-
-        name: name,
-
-        pn: document.getElementById('inPN')
-            .value
-            .trim(),
-
-        sn: sn,
-
-        code: warehouse,
-
-        warehouse: warehouse,
-
-        qty: parseInt(
-            document.getElementById('inQty').value
-        ) || 1,
-
-        loc: document.getElementById('inLoc')
-            .value
-            .trim(),
-
-        auditStatus: "",
-        auditDate: "",
-        auditNote: "",
-
-        createdAt: new Date().toISOString(),
-
-        updatedAt: new Date().toISOString()
-
-    });
-
-    save();
-
-    clearForm();
-
-    showToast(
-        "Đã thêm vật tư!",
-        "success"
-    );
-
-    syncCloud();
-}
-
-/* =========================
-   UPDATE ITEM
-========================= */
-
-function updateItem() {
-
-    const idx =
-        document.getElementById(
-            'editIndex'
-        ).value;
-
-    if (idx === "-1") return;
-
-    const warehouse =
-        document.getElementById(
-            'inWarehouse'
-        )
-        .value
-        .trim()
-        .toUpperCase();
-
-    inventory[idx] = {
-
-        ...inventory[idx],
-
-        name: document.getElementById('inName')
-            .value
-            .trim(),
-
-        pn: document.getElementById('inPN')
-            .value
-            .trim(),
-
-        sn: document.getElementById('inSN')
-            .value
-            .trim(),
-
-        code: warehouse,
-
-        warehouse: warehouse,
-
-        qty: parseInt(
-            document.getElementById('inQty').value
-        ) || 1,
-
-        loc: document.getElementById('inLoc')
-            .value
-            .trim(),
-
-        updatedAt: new Date().toISOString()
-    };
-
-    save();
-
-    clearForm();
-
-    showToast(
-        "Cập nhật thành công!",
-        "success"
-    );
-
-    syncCloud();
-}
-
-/* =========================
-   AUDIT
-========================= */
-
-function processAdvancedAudit() {
-
-    const input =
-        document.getElementById('audInput')
-        .value
-        .trim()
-        .toUpperCase();
-
-    if (!input) {
-
-        return showToast(
-            "Nhập mã kiểm kê!",
-            "error"
-        );
-    }
-
-    const status =
-        document.querySelector(
-            'input[name="audStatus"]:checked'
-        ).value;
-
-    const note =
-        document.getElementById('audNote')
-        .value
-        .trim();
-
-    const auditTime = new Date();
-
-    let found = false;
-
-    inventory = inventory.map(item => {
-
-        const warehouse =
-            (item.warehouse || '')
-            .toUpperCase();
-
-        const sn =
-            (item.sn || '')
-            .toUpperCase();
-
-        const code =
-            (item.code || '')
-            .toUpperCase();
-
-        if (
-            warehouse === input ||
-            sn === input ||
-            code === input
-        ) {
-
-            found = true;
-
-            return {
-
-                ...item,
-
-                auditStatus: status,
-
-                auditDate:
-                    auditTime.toLocaleString('vi-VN'),
-
-                auditTimestamp:
-                    auditTime.getTime(),
-
-                auditNote: note,
-
-                updatedAt:
-                    new Date().toISOString()
-            };
-        }
-
-        return item;
-    });
-
-    if (!found) {
-
-        return showToast(
-            "Không tìm thấy thiết bị!",
-            "error"
-        );
-    }
-
-    save();
-
-    syncCloud();
-
-    closeAdvAuditModal();
-
-    document.getElementById('audInput').value = '';
-
-    document.getElementById('audNote').value = '';
-
-    showToast(
-        "Đã cập nhật kiểm kê!",
-        "success"
-    );
-}
-
-/* =========================
-   DELETE
-========================= */
-
-function deleteItem(idx) {
-
-    customConfirm(
-        `Xóa thiết bị: ${inventory[idx].name}?`,
-        () => {
-
-            inventory.splice(idx, 1);
-
-            save();
-
-            syncCloud();
-
-            showToast(
-                "Đã xóa.",
-                "success"
-            );
-        }
-    );
-}
-
-/* =========================
-   CLEAR FORM
-========================= */
-
-function clearForm() {
-
-    document.getElementById(
-        'editIndex'
-    ).value = "-1";
-
-    document.querySelectorAll(
-        '#adminArea input'
-    ).forEach(i => {
-
-        if (i.type !== 'hidden') {
-
-            i.value =
-                (i.id === 'inQty')
-                ? '1'
-                : '';
-        }
-    });
-
-    document.getElementById('btnAdd')
-        .classList.remove('hidden');
-
-    document.getElementById('btnUpdate')
-        .classList.add('hidden');
-}
-
-/* =========================
-   LOGOUT
-========================= */
-
-function handleLogout() {
-
-    localStorage.removeItem(
-        SESSION_KEY
-    );
-
+function logout(){
+    localStorage.removeItem(SESSION_KEY);
     location.reload();
 }
 
-/* =========================
-   DARK MODE
-========================= */
+function saveData(){
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(inventory));
+    renderTable();
+}
 
-function toggleDarkMode() {
+function addItem(){
 
-    const isDark =
-        document.documentElement
-        .classList.toggle('dark');
+    const name = document.getElementById("name").value.trim();
+    const sn = document.getElementById("sn").value.trim();
+
+    if(!name || !sn){
+        showToast("Nhập tên và Serial Number","error");
+        return;
+    }
+
+    inventory.push({
+        name:name,
+        pn:document.getElementById("pn").value.trim(),
+        sn:sn,
+        warehouse:document.getElementById("warehouse").value.trim().toUpperCase(),
+        location:document.getElementById("location").value.trim(),
+        qty:parseInt(document.getElementById("qty").value)||1
+    });
+
+    saveData();
+
+    clearForm();
+
+    showToast("Đã thêm thiết bị","success");
+}
+
+function editItem(index){
+
+    if(role!=="admin"){
+        showToast("Chỉ admin được chỉnh sửa","error");
+        return;
+    }
+
+    const item = inventory[index];
+
+    document.getElementById("editIndex").value = index;
+
+    document.getElementById("name").value = item.name;
+    document.getElementById("pn").value = item.pn;
+    document.getElementById("sn").value = item.sn;
+    document.getElementById("warehouse").value = item.warehouse;
+    document.getElementById("location").value = item.location;
+    document.getElementById("qty").value = item.qty;
+
+    document.getElementById("btnAdd").classList.add("hidden");
+    document.getElementById("btnUpdate").classList.remove("hidden");
+
+    window.scrollTo({
+        top:0,
+        behavior:"smooth"
+    });
+}
+
+function updateItem(){
+
+    const index = document.getElementById("editIndex").value;
+
+    if(index === "-1") return;
+
+    inventory[index] = {
+        name:document.getElementById("name").value.trim(),
+        pn:document.getElementById("pn").value.trim(),
+        sn:document.getElementById("sn").value.trim(),
+        warehouse:document.getElementById("warehouse").value.trim().toUpperCase(),
+        location:document.getElementById("location").value.trim(),
+        qty:parseInt(document.getElementById("qty").value)||1
+    };
+
+    saveData();
+
+    clearForm();
+
+    showToast("Cập nhật thành công","success");
+}
+
+function deleteItem(index){
+
+    if(!confirm("Xóa thiết bị này?")) return;
+
+    inventory.splice(index,1);
+
+    saveData();
+
+    showToast("Đã xóa","success");
+}
+
+function clearForm(){
+
+    document.getElementById("editIndex").value = "-1";
+
+    document.getElementById("name").value = "";
+    document.getElementById("pn").value = "";
+    document.getElementById("sn").value = "";
+    document.getElementById("warehouse").value = "";
+    document.getElementById("location").value = "";
+    document.getElementById("qty").value = 1;
+
+    document.getElementById("btnAdd").classList.remove("hidden");
+    document.getElementById("btnUpdate").classList.add("hidden");
+}
+
+function renderTable(){
+
+    const tbody = document.getElementById("tableBody");
+
+    tbody.innerHTML = "";
+
+    const q = document.getElementById("search").value.toLowerCase();
+
+    let totalQty = 0;
+    let count = 0;
+
+    inventory.forEach((item,index)=>{
+
+        const searchable = `
+            ${item.name}
+            ${item.pn}
+            ${item.sn}
+            ${item.warehouse}
+            ${item.location}
+        `.toLowerCase();
+
+        if(searchable.includes(q)){
+
+            count++;
+            totalQty += item.qty;
+
+            const tr = document.createElement("tr");
+
+            tr.className = "border-t border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50";
+
+            tr.innerHTML = `
+                <td class="p-4">${count}</td>
+
+                <td class="p-4 font-bold">${item.name}</td>
+
+                <td class="p-4">${item.pn || '-'}</td>
+
+                <td class="p-4 font-mono">${item.sn}</td>
+
+                <td class="p-4">
+                    <span class="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-bold">
+                        ${item.warehouse || '-'}
+                    </span>
+                </td>
+
+                <td class="p-4">${item.location || '-'}</td>
+
+                <td class="p-4 font-bold">${item.qty}</td>
+
+                <td class="p-4 text-center">
+                    <button onclick="showQR('${item.warehouse || item.sn}')"
+                        class="px-3 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-bold">
+                        QR
+                    </button>
+                </td>
+
+                <td class="p-4 text-center">
+
+                    <div class="flex justify-center gap-2">
+
+                        <button onclick="editItem(${index})"
+                            class="px-3 py-1 rounded bg-blue-600 text-white text-xs font-bold">
+                            Sửa
+                        </button>
+
+                        ${
+                            role==="admin"
+                            ?
+                            `
+                            <button onclick="deleteItem(${index})"
+                                class="px-3 py-1 rounded bg-rose-600 text-white text-xs font-bold">
+                                Xóa
+                            </button>
+                            `
+                            :
+                            ''
+                        }
+
+                    </div>
+
+                </td>
+            `;
+
+            tbody.appendChild(tr);
+        }
+
+    });
+
+    document.getElementById("totalText").innerHTML =
+        `Tổng thiết bị: <b>${count}</b> | Tổng số lượng: <b>${totalQty}</b>`;
+}
+
+function showQR(text){
+
+    const win = window.open("","_blank");
+
+    win.document.write(`
+        <html>
+        <head>
+            <title>QR Code</title>
+            <style>
+                body{
+                    display:flex;
+                    justify-content:center;
+                    align-items:center;
+                    flex-direction:column;
+                    height:100vh;
+                    font-family:sans-serif;
+                }
+            </style>
+        </head>
+        <body>
+            <div id="qr"></div>
+            <h2>${text}</h2>
+
+            <script src="https://cdn.jsdelivr.net/npm/kjua@0.9.0/dist/kjua.min.js"><\/script>
+
+            <script>
+                kjua({
+                    render:'canvas',
+                    text:'${text}',
+                    size:300,
+                    container:document.getElementById('qr')
+                });
+            <\/script>
+        </body>
+        </html>
+    `);
+
+    win.document.close();
+}
+
+function exportExcel(){
+
+    const ws = XLSX.utils.json_to_sheet(inventory);
+
+    const wb = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(wb,ws,"Inventory");
+
+    XLSX.writeFile(
+        wb,
+        "CNS_ATM_INVENTORY.xlsx"
+    );
+
+    showToast("Xuất Excel thành công","success");
+}
+
+function printQR(){
+
+    const area = document.getElementById("printArea");
+
+    area.innerHTML = "";
+
+    inventory.forEach(item=>{
+
+        const div = document.createElement("div");
+
+        div.style.marginBottom = "30px";
+        div.style.textAlign = "center";
+
+        div.innerHTML = `
+            <div class="qr"></div>
+            <div style="margin-top:10px;font-weight:bold">
+                ${item.warehouse || item.sn}
+            </div>
+        `;
+
+        area.appendChild(div);
+
+        kjua({
+            render:'canvas',
+            text:item.warehouse || item.sn,
+            size:150,
+            container:div.querySelector(".qr")
+        });
+
+    });
+
+    setTimeout(()=>{
+        window.print();
+    },500);
+}
+
+function printLabels(){
+
+    const area = document.getElementById("printArea");
+
+    area.innerHTML = "";
+
+    inventory.forEach(item=>{
+
+        const div = document.createElement("div");
+
+        div.style.border = "2px solid black";
+        div.style.padding = "15px";
+        div.style.marginBottom = "10px";
+
+        div.innerHTML = `
+            <h3>${item.name}</h3>
+
+            <p><b>P/N:</b> ${item.pn || '-'}</p>
+
+            <p><b>S/N:</b> ${item.sn}</p>
+
+            <p><b>Mã Kho:</b> ${item.warehouse || '-'}</p>
+
+            <p><b>SL:</b> ${item.qty}</p>
+        `;
+
+        area.appendChild(div);
+    });
+
+    setTimeout(()=>{
+        window.print();
+    },500);
+}
+
+async function syncCloud(){
+
+    if(WEB_APP_URL === "YOUR_GOOGLE_APPS_SCRIPT_URL"){
+        showToast("Chưa cấu hình Google Apps Script","error");
+        return;
+    }
+
+    try{
+
+        const params = new URLSearchParams();
+
+        params.append("data",JSON.stringify(inventory));
+
+        await fetch(WEB_APP_URL,{
+            method:"POST",
+            mode:"no-cors",
+            body:params
+        });
+
+        showToast("Đồng bộ Cloud thành công","success");
+
+    }catch(e){
+
+        showToast("Lỗi đồng bộ Cloud","error");
+
+        console.error(e);
+    }
+}
+
+function toggleDarkMode(){
+
+    const html = document.documentElement;
+
+    html.classList.toggle("dark");
 
     localStorage.setItem(
-        'theme',
-        isDark ? 'dark' : 'light'
+        "theme",
+        html.classList.contains("dark")
+        ?
+        "dark"
+        :
+        "light"
     );
 }
 
-/* =========================
-   LOAD
-========================= */
+window.onload = ()=>{
 
-window.onload = () => {
-
-    if (
-        localStorage.getItem('theme')
-        === 'dark'
-    ) {
-        document.documentElement
-            .classList.add('dark');
+    if(localStorage.getItem("theme")==="dark"){
+        document.documentElement.classList.add("dark");
     }
 
-    const stored =
-        localStorage.getItem(
-            STORAGE_KEY
-        );
+    const savedData = localStorage.getItem(STORAGE_KEY);
 
-    if (stored) {
-        inventory = JSON.parse(stored);
+    if(savedData){
+        inventory = JSON.parse(savedData);
     }
 
-    const savedRole =
-        localStorage.getItem(
-            SESSION_KEY
-        );
+    const savedRole = localStorage.getItem(SESSION_KEY);
 
-    if (savedRole) {
+    if(savedRole){
 
         role = savedRole;
 
-        initAppView();
+        document.getElementById("loginPage").classList.add("hidden");
+        document.getElementById("app").classList.remove("hidden");
+
+        if(role==="admin"){
+            document.getElementById("adminPanel").classList.remove("hidden");
+        }
+
+        renderTable();
     }
-};
+}
 </script>
+
+</body>
+</html>
